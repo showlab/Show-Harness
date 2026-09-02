@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en" class="h-100" data-bs-theme="light">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Show-Pro: Embodied Harness Enables VLMs to Play Robots">
+    <title>Show-Pro</title>
+    <link rel="icon" href="./assets/images/showlab.ico" type="image/x-icon">
+    <link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sl-blue: #0071BC;
+            --sl-logo-blue: #669ED3;
+            --sl-green: #67A651;
+            --sl-red: #D85E5D;
+            --sl-orange: #F3AA68;
+            --sl-ink: #16191D;
+            --sl-gray: #6E7781;
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+
+        .hero {
+            background: linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
+            border-bottom: 1px solid rgba(0, 0, 0, .06);
+        }
+
+        .brand-S { color: var(--sl-logo-blue); }
+        .brand-h { color: var(--sl-green); }
+        .brand-o { color: var(--sl-red); }
+        .brand-w { color: var(--sl-orange); }
+        .brand-rest { color: var(--sl-gray); }
+
+        .title-main { font-weight: 700; letter-spacing: -.02em; }
+        .subtitle { color: var(--sl-gray); font-weight: 400; }
+
+        .authors a { color: inherit; text-decoration: none; }
+        .authors sup { color: var(--sl-gray); }
+
+        .pill {
+            border-radius: 999px;
+            padding: .45rem 1.1rem;
+            font-size: .95rem;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-weight: 700;
+            letter-spacing: -.01em;
+            margin-bottom: .35rem;
+        }
+        .section-rule {
+            width: 3rem; height: 3px; border-radius: 2px;
+            background: var(--sl-logo-blue);
+            margin-bottom: 1.75rem;
+        }
+
+        /* figures carry their own white ground, so no frame is added here */
+        .figure-plain img { display: block; width: 100%; height: auto; }
+
+        /* fixed ratio keeps every tile the same height, so the captions
+           below them line up and nothing gets clipped */
+        .video-card {
+            border-radius: .6rem;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            background: transparent;
+        }
+        .video-card video {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .group-head {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 2rem 0 1rem;
+            color: var(--sl-ink);
+        }
+        .group-head:first-child { margin-top: 0; }
+
+        .group-count {
+            font-weight: 400;
+            font-size: .8rem;
+            color: var(--sl-gray);
+            border: 1px solid rgba(0, 0, 0, .12);
+            border-radius: 999px;
+            padding: .1rem .5rem;
+            margin-left: .35rem;
+        }
+
+        .clip-meta {
+            display: block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .74rem;
+            opacity: .65;
+        }
+
+        .video-caption {
+            color: var(--sl-gray);
+            font-size: .85rem;
+            text-align: center;
+            margin: .45rem 0 0;
+        }
+        .main-video {
+            border-radius: .8rem;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 8px 28px rgba(16, 25, 40, .12);
+        }
+
+        .main-video video {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .video-wide {
+            border-radius: .6rem;
+            overflow: hidden;
+            background: transparent;
+        }
+        .video-wide video { display: block; width: 100%; height: auto; }
+
+        .unit-chip {
+            display: inline-block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .82rem;
+            padding: .3rem .6rem;
+            margin: .2rem;
+            border-radius: .4rem;
+            background: rgba(102, 158, 211, .14);
+            color: var(--sl-blue);
+            border: 1px solid rgba(102, 158, 211, .3);
+        }
+
+        pre.bibtex {
+            background: #f6f8fa;
+            border: 1px solid rgba(0, 0, 0, .08);
+            border-radius: .6rem;
+            padding: 1rem 1.25rem;
+            font-size: .85rem;
+            overflow-x: auto;
+        }
+
+        .res-head {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin: 0 0 .85rem;
+            color: var(--sl-ink);
+        }
+
+        .res-text {
+            font-size: .95rem;
+            line-height: 1.7;
+            color: #33383f;
+        }
+
+        .stat {
+            height: 100%;
+            border: 1px solid rgba(0, 0, 0, .09);
+            border-radius: .7rem;
+            padding: 1rem 1.1rem;
+            background: #fbfcfe;
+        }
+
+        .stat-lab {
+            font-size: .78rem;
+            color: var(--sl-gray);
+            margin-bottom: .35rem;
+        }
+
+        .stat-val {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--sl-blue);
+            line-height: 1.1;
+        }
+
+        .stat-val small { font-size: 1rem; font-weight: 600; }
+        .stat-val .sep { color: var(--sl-gray); font-weight: 400; }
+
+        .stat-sub {
+            font-size: .78rem;
+            color: var(--sl-gray);
+            margin-top: .35rem;
+        }
+
+        .lead-abstract { font-size: 1.03rem; line-height: 1.75; }
+    </style>
+</head>
+
+<body class="d-flex flex-column h-100">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero py-5">
+        <div class="container py-4" style="max-width: 1080px;">
+            <h1 class="title-main display-4 text-center mb-3">
+                <span class="brand-S">S</span><span class="brand-h">h</span><span class="brand-o">o</span><span
+                    class="brand-w">w</span><span class="brand-rest">-Pro</span>
+            </h1>
+            <p class="subtitle fs-4 text-center mb-4">Embodied Harness Enables VLMs to Play Robots</p>
+
+            <p class="authors text-center mb-1">
+                Yanzhe Chen<sup>*</sup>, Zechen Bai<sup>*</sup>, Zhijun Cao<sup>*</sup>, Wenzheng Zeng<sup>*</sup>,
+                Kevin Qinghong Lin,<br>
+                Yiqi Lin, Guoqiang Liang, Kevin Yuchen Ma, Qiming Huang, Mike Zheng Shou<sup>&dagger;</sup>
+            </p>
+            <p class="text-center subtitle mb-1">Show Lab, National University of Singapore</p>
+            <p class="text-center subtitle small mb-4">
+                <sup>*</sup>Equal contribution &nbsp;&middot;&nbsp; <sup>&dagger;</sup>Corresponding author
+            </p>
+
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <!-- TODO: 替换为真实链接 -->
+                <a href="#" class="btn btn-dark pill">Paper</a>
+                <a href="#" class="btn btn-dark pill">arXiv</a>
+                <a href="https://github.com/showlab/Show-Pro" class="btn btn-dark pill">Code</a>
+                <a href="https://huggingface.co/showlab" class="btn btn-dark pill">Models</a>
+                <a href="#demos" class="btn btn-outline-secondary pill">Demos</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= MAIN VIDEO ================= -->
+    <section class="pt-5 pb-2">
+        <div class="container" style="max-width: 1000px;">
+            <div class="main-video">
+                <!-- browsers only autoplay muted video; the clip carries narration,
+                     so it starts silent and the viewer can unmute from the controls -->
+                <video muted autoplay loop controls playsinline preload="auto"
+                       poster="./assets/videos/posters/main_cover.jpg">
+                    <source src="./assets/videos/showpro_main.mp4" type="video/mp4">
+                </video>
+            </div>
+            <p class="video-caption">Playing muted &mdash; use the speaker icon for narration.</p>
+        </div>
+    </section>
+
+    <!-- ================= TEASER ================= -->
+    <section class="py-5">
+        <div class="container" style="max-width: 1080px;">
+            <div class="figure-plain">
+                <img src="./assets/images/overview.svg" class="img-fluid w-100" alt="Show-Pro overview">
+            </div>
+            <p class="text-center subtitle small mt-3 mb-0">
+                Show-Pro turns a VLM into a situated agent: it perceives, reasons, and acts through a compact set of
+                semantic action units that embodiment-specific interpreters ground into robot motion.
+            </p>
+        </div>
+    </section>
+
+    <!-- ================= ABSTRACT ================= -->
+    <section class="py-5 bg-body-tertiary">
+        <div class="container" style="max-width: 860px;">
+            <h2 class="section-title">Abstract</h2>
+            <div class="section-rule"></div>
+            <p class="lead-abstract">
+                Foundation vision&ndash;language models (VLMs) exhibit broad intelligence about the world, yet
+                translating this intelligence into robot control remains challenging. We present
+                <strong>Show-Pro</strong>, an <em>Embodied Harness</em> that enables VLMs to
+                <strong>&ldquo;play&rdquo; robots</strong> through a compact semantic interface linking intent to
+                action. Show-Pro exposes discrete incremental action units that VLMs can naturally reason over,
+                while embodiment-specific interpreters deterministically ground them into executable robot actions.
+            </p>
+            <p class="lead-abstract">
+                Through the same interface, Show-Pro demonstrates the feasibility of directly unlocking
+                closed-source frontier VLMs for zero-shot control and efficiently adapting small-scale models for
+                low-cost deployment. We further develop <strong>GUMI</strong> (<strong>GU</strong>I
+                <strong>M</strong>anipulation <strong>I</strong>nterface), which extends the same semantic action
+                space to GUI-based demonstration collection, allowing humans and agents to &ldquo;play&rdquo; robots
+                across embodiments without specialized teleoperation hardware.
+            </p>
+            <p class="lead-abstract mb-0">
+                Extensive experiments show that Show-Pro generalizes across tasks, embodiments, and environments,
+                outperforming representative agentic and VLA paradigms. This suggests that <strong>the right
+                interface can unlock substantial embodied capability from foundation VLMs</strong>, without new model
+                capacity or embodiment-specific pretraining.
+            </p>
+        </div>
+    </section>
+
+    <!-- ================= ACTION SPACE ================= -->
+    <section class="py-5">
+        <div class="container" style="max-width: 860px;">
+            <h2 class="section-title">The Semantic Action Space</h2>
+            <div class="section-rule"></div>
+            <p class="mb-3">
+                Robot control is reformulated into parameter-free units that a VLM can reason about directly. Each unit
+                is a bare symbol; the interpreter supplies its metric magnitude, so the same vocabulary drives a 7-DoF
+                Franka, a 6-DoF AgileX, and a simulator without changing the model.
+            </p>
+            <div class="mb-3">
+                <span class="unit-chip">MV_FWD</span><span class="unit-chip">MV_BACK</span><span
+                    class="unit-chip">MV_LEFT</span><span class="unit-chip">MV_RIGHT</span><span
+                    class="unit-chip">MV_UP</span><span class="unit-chip">MV_DOWN</span><span
+                    class="unit-chip">GRASP</span><span class="unit-chip">RELEASE</span><span
+                    class="unit-chip">DONE</span><span class="unit-chip">ROTATE_CW</span><span
+                    class="unit-chip">ROTATE_CCW</span><span class="unit-chip">STILL</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= METHOD ================= -->
+    <section class="py-5 bg-body-tertiary">
+        <div class="container" style="max-width: 1080px;">
+            <h2 class="section-title">The Show-Pro Harness</h2>
+            <div class="section-rule"></div>
+            <div class="figure-plain">
+                <img src="./assets/images/method.svg" class="img-fluid w-100" alt="Show-Pro harness">
+            </div>
+            <p class="text-center subtitle small mt-3 mb-0">
+                Each step closes the loop: plugins assemble the context, the VLM emits one semantic action unit, and
+                the interpreter grounds it into motion.
+            </p>
+        </div>
+    </section>
+
+    <!-- ================= DEMOS ================= -->
+    <section class="py-5" id="demos">
+        <div class="container" style="max-width: 1180px;">
+            <h2 class="section-title">Real-Robot Demonstrations</h2>
+            <div class="section-rule"></div>
+            <p class="subtitle small mb-4">32 rollouts, all driven through the same semantic action space.</p>
+            <div id="gallery"></div>
+        </div>
+    </section>
+
+    <!-- ================= GUMI ================= -->
+    <section class="py-5 bg-body-tertiary">
+        <div class="container" style="max-width: 1080px;">
+            <h2 class="section-title">GUMI &mdash; Collecting Demonstrations by Playing</h2>
+            <div class="section-rule"></div>
+            <p class="mb-4">
+                Every action unit is a labeled key, so demonstrating a task amounts to playing the robot. A human at
+                the keyboard and a GUI agent reading the same screen drive the robot identically, and every recorded
+                step is a ready training pair &mdash; no specialized teleoperation hardware required.
+            </p>
+            <div class="video-wide">
+                <video muted autoplay loop playsinline controls preload="metadata">
+                    <source src="./assets/videos/gumi_rollout.mp4" type="video/mp4">
+                </video>
+            </div>
+            <p class="video-caption">A GUI agent driving the dual-arm robot through GUMI, one action unit per keystroke.</p>
+        </div>
+    </section>
+
+    <!-- ================= RESULTS ================= -->
+    <section class="py-5">
+        <div class="container" style="max-width: 1080px;">
+            <h2 class="section-title">Results</h2>
+            <div class="section-rule"></div>
+
+            <h5 class="res-head">Generalization across tasks, environments, and embodiments</h5>
+            <p class="res-text">
+                Show-Pro supports two complementary routes to generalist control: a <strong>zero-shot agent
+                    (ZS)</strong> driving a frontier VLM, and <strong>lightweight post-training (PT)</strong> of a
+                much smaller open-source model through the same interface. Both outperform all three baseline
+                families &mdash; VLA, VLA-centric agents, and code-as-policy agents.
+            </p>
+            <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+                <div class="col">
+                    <div class="stat">
+                        <div class="stat-lab">Cross-task &middot; 10 tasks</div>
+                        <div class="stat-val">89<small>%</small> <span class="sep">/</span> 86<small>%</small></div>
+                        <div class="stat-sub">ZS / PT &nbsp;&middot;&nbsp; best baseline 57%</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="stat">
+                        <div class="stat-lab">Cross-environment</div>
+                        <div class="stat-val">20<small>/20</small></div>
+                        <div class="stat-sub">ZS on background, lighting, viewpoint, distractors</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="stat">
+                        <div class="stat-lab">Cross-embodiment &middot; Franka + AgileX</div>
+                        <div class="stat-val">93<small>%</small> <span class="sep">/</span> 87<small>%</small></div>
+                        <div class="stat-sub">ZS / PT &nbsp;&middot;&nbsp; baselines at most 52%</div>
+                    </div>
+                </div>
+            </div>
+            <p class="res-text mb-5">
+                The advantage holds on the held-out Teddy and Chess tasks never seen in post-training. On
+                <strong>sim-to-real</strong>, PT succeeds in 13/20 trials when trained <em>only</em> on simulated
+                demonstrations, while the trainable VLA baselines fail entirely.
+            </p>
+
+            <h5 class="res-head">Physical and semantic adaptability</h5>
+            <div class="figure-plain mb-3">
+                <img src="./assets/images/generalization.svg" class="img-fluid w-100" alt="Adaptability">
+            </div>
+            <p class="res-text mb-5">
+                <strong>Physical:</strong> finer motion needs only a smaller step in the interpreter (2&nbsp;cm
+                &rarr; 1&nbsp;cm), with no retraining, while &pi;<sub>0.5</sub> reaches 18% on the same data and needs
+                task-specific demonstrations to recover. Composing two units into a diagonal motion cuts steps by
+                26% for 2 points of success; repeated rotation units extrapolate to an unseen 90&deg;; joint
+                dual-arm prediction lifts handover from 30% to 75% and removes the collisions seen with
+                independent agents.
+                <strong>Semantic:</strong> with Situated Planning, ZS reaches 88% on tasks requiring reasoning
+                before manipulation, where PT alone gets 8% and &pi;<sub>0.5</sub> 0%. Given a single video
+                demonstration, ZS follows the demonstrated order in 20/20 trials &mdash; from either a human or a
+                robot demonstrator.
+            </p>
+
+            <h5 class="res-head">Frontier VLM choice and thinking effort</h5>
+            <div class="figure-plain mb-3">
+                <img src="./assets/images/model_api.svg" class="img-fluid w-100" alt="Frontier VLM ablation">
+            </div>
+            <p class="res-text mb-5">
+                Swapping the zero-shot model across five frontier VLMs under the <em>same</em> harness splits them
+                into two tiers: Gemini-3.1&nbsp;Pro, GPT-5.6-sol and Opus&nbsp;5 reach 88&ndash;96%, while
+                GPT-5.6-luna and Gemini-3.6-flash stay at 72&ndash;78%. Raising thinking effort leaves success
+                within noise and mainly shortens episodes (37.2&nbsp;&rarr;&nbsp;30.5 units for sol) at roughly
+                triple the wall-clock time.
+                The step logs locate the gap: at least 98% of responses are valid action units and 97% of subtask
+                plans are correct, yet the empty-grasp rate rises from 6% to 26%. The chess-cannon probe confirms
+                it &mdash; plans are almost always right (19, 17 and 16 of 20) but only 14, 6 and 3 episodes
+                succeed, with placement error growing from 0.4 to 1.9 board squares. Among frontier VLMs with
+                strong reasoning, <strong>zero-shot robot control is limited by fine-grained spatial grounding,
+                    not by language understanding or planning</strong>.
+            </p>
+
+            <h5 class="res-head">Post-trained backbone scaling</h5>
+            <div class="figure-plain mb-3">
+                <img src="./assets/images/open_source.svg" class="img-fluid w-100" alt="Backbone scaling">
+            </div>
+            <p class="res-text mb-5">
+                Success is flat from 2B up &mdash; five backbones stay within four points of one another
+                (88&ndash;92%) &mdash; so extra capacity buys little on standard tasks. The two smallest backbones
+                still emit valid units but linger before committing, stretching episodes from 40.7 to 57.1 units.
+                Capacity pays off most on the fine-grained tasks; on a rolling tennis ball the 2B backbone leads
+                both the larger and the smaller ones, the one setting where capacity does not order the results.
+            </p>
+
+            <h5 class="res-head">Harness plugin ablations</h5>
+            <div class="figure-plain mb-3">
+                <img src="./assets/images/plugins.svg" class="img-fluid w-100" alt="Plugin ablations">
+            </div>
+            <p class="res-text mb-0">
+                Each default plugin is removed one at a time from the full configuration. <strong>Multi-View
+                    Guidance</strong> is worth 38 points (96% &rarr; 58%), with failures concentrated on small
+                objects that a distant view cannot localize; <strong>Proprioception</strong> 28 points, because
+                pixels under-constrain when to close the gripper; <strong>Subtask Planning</strong> 36 points
+                &mdash; without a plan the model drags the object toward the plate instead of lifting it. Optional
+                plugins are switched on only where the task demands them.
+            </p>
+        </div>
+    </section>
+
+    <!-- ================= BIBTEX ================= -->
+    <section class="py-5 bg-body-tertiary">
+        <div class="container" style="max-width: 860px;">
+            <h2 class="section-title">BibTeX</h2>
+            <div class="section-rule"></div>
+            <pre class="bibtex mb-0">@article{chen2026showpro,
+  title   = {Show-Pro: Embodied Harness Enables VLMs to Play Robots},
+  author  = {Chen, Yanzhe and Bai, Zechen and Cao, Zhijun and Zeng, Wenzheng and
+             Lin, Kevin Qinghong and Lin, Yiqi and Liang, Guoqiang and
+             Ma, Kevin Yuchen and Huang, Qiming and Shou, Mike Zheng},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</pre>
+        </div>
+    </section>
+
+    <footer class="py-4 mt-auto border-top">
+        <div class="container text-center subtitle small">
+            Show Lab, National University of Singapore
+        </div>
+    </footer>
+
+    <script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // all clips render at once, grouped by capture setting; only the ones
+        // on screen actually fetch and decode, so 61 <video> nodes stay cheap
+        const CLIPS = [{"file":"C0708_web_auto_white_table_1x.mp4","dur":23.4,"tag":"Tabletop manipulation"},{"file":"C0712_web_auto_white_table_1x.mp4","dur":21.6,"tag":"Tabletop manipulation"},{"file":"C0714_web_auto_white_table_1x.mp4","dur":28.0,"tag":"Tabletop manipulation"},{"file":"C0716_web_auto_white_table_1x.mp4","dur":22.6,"tag":"Tabletop manipulation"},{"file":"C0717_web_auto_white_table_1x.mp4","dur":25.5,"tag":"Tabletop manipulation"},{"file":"C0718_web_auto_white_table_1x.mp4","dur":35.5,"tag":"Tabletop manipulation"},{"file":"C0719_web_auto_white_table_1x.mp4","dur":24.5,"tag":"Tabletop manipulation"},{"file":"C0720_web_auto_white_table_1x.mp4","dur":26.2,"tag":"Tabletop manipulation"},{"file":"C0721_web_auto_white_table_1x.mp4","dur":22.0,"tag":"Tabletop manipulation"},{"file":"C0725_web_auto_white_table_1x.mp4","dur":30.0,"tag":"Tabletop manipulation"},{"file":"C0733_web_auto_white_table_1x.mp4","dur":23.4,"tag":"Tabletop manipulation"},{"file":"C0734_web_auto_white_table_1x.mp4","dur":28.7,"tag":"Tabletop manipulation"},{"file":"C0737_web_auto_white_table_1x.mp4","dur":28.4,"tag":"Tabletop manipulation"},{"file":"C0739_web_auto_white_table_1x.mp4","dur":30.2,"tag":"Tabletop manipulation"},{"file":"C0747_web_auto_white_table_1x.mp4","dur":56.0,"tag":"Tabletop manipulation"},{"file":"C0748_web_auto_white_table_1x.mp4","dur":23.5,"tag":"Tabletop manipulation"},{"file":"C0753_web_auto_white_table_1x.mp4","dur":91.0,"tag":"Tabletop manipulation"},{"file":"C0758_web_auto_white_table_1x.mp4","dur":17.5,"tag":"Tabletop manipulation"},{"file":"C0779_web_auto_white_table_1x.mp4","dur":7.0,"tag":"Tabletop manipulation"},{"file":"C0783_web_auto_white_table_1x.mp4","dur":23.0,"tag":"Tabletop manipulation"},{"file":"C0784_web_auto_white_table_1x.mp4","dur":25.2,"tag":"Tabletop manipulation"},{"file":"C0791_web_auto_white_table_1x.mp4","dur":112.8,"tag":"Tabletop manipulation"},{"file":"C0793_web_auto_white_table_1x.mp4","dur":82.7,"tag":"Tabletop manipulation"},{"file":"C0798_web_auto_white_table_1x.mp4","dur":102.5,"tag":"Tabletop manipulation"},{"file":"C0800_web_auto_white_table_1x.mp4","dur":56.1,"tag":"Tabletop manipulation"},{"file":"C0801_web_auto_white_table_1x.mp4","dur":50.3,"tag":"Tabletop manipulation"},{"file":"C0802_web_auto_white_table_1x.mp4","dur":45.5,"tag":"Tabletop manipulation"},{"file":"C0803_web_auto_white_table_1x.mp4","dur":53.0,"tag":"Tabletop manipulation"},{"file":"C0804_web_auto_white_table_1x.mp4","dur":65.0,"tag":"Tabletop manipulation"},{"file":"C0702_web_neutral_1x.mp4","dur":318.6,"tag":"Neutral background"},{"file":"C0723_web_neutral_1x.mp4","dur":23.4,"tag":"Neutral background"},{"file":"C0724_web_neutral_1x.mp4","dur":25.5,"tag":"Neutral background"}];
+        const gallery = document.getElementById("gallery");
+
+        // A <video> cannot start playing the instant its src is set, so calling
+        // play() here would always reject; the autoplay attribute lets the
+        // browser start on its own once enough data has arrived. Loading is
+        // also capped, otherwise dozens of clips fight over the six
+        // connections the browser allows per host and none of them finish.
+        const MAX_ACTIVE = 6;
+        const pending = [];
+        let active = 0;
+
+        function pump() {
+            while (active < MAX_ACTIVE && pending.length) {
+                const v = pending.shift();
+                if (!v.isConnected || v.dataset.loaded) continue;
+                v.dataset.loaded = "1";
+                active++;
+                const done = () => { active--; pump(); };
+                v.addEventListener("loadeddata", () => {
+                    done();
+                    v.play().catch(() => { });   // now there is data to play
+                }, { once: true });
+                v.addEventListener("error", done, { once: true });
+                v.src = v.dataset.src;
+                v.load();
+            }
+        }
+
+        const io = new IntersectionObserver(entries => {
+            for (const e of entries) {
+                const v = e.target;
+                if (e.isIntersecting) {
+                    if (!v.dataset.loaded) {
+                        pending.push(v);
+                        pump();
+                    } else if (v.paused) {
+                        v.play().catch(() => { });
+                    }
+                } else if (!v.paused) {
+                    v.pause();
+                }
+            }
+        }, { rootMargin: "150px 0px" });
+
+        const groups = [];
+        for (const c of CLIPS) {
+            if (!groups.length || groups[groups.length - 1].tag !== c.tag)
+                groups.push({ tag: c.tag, items: [] });
+            groups[groups.length - 1].items.push(c);
+        }
+
+        for (const g of groups) {
+            const head = document.createElement("h5");
+            head.className = "group-head";
+            head.innerHTML = `${g.tag} <span class="group-count">${g.items.length}</span>`;
+            gallery.appendChild(head);
+
+            const row = document.createElement("div");
+            row.className = "row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-2";
+            for (const c of g.items) {
+                const col = document.createElement("div");
+                col.className = "col";
+                col.innerHTML = `
+                  <div class="video-card">
+                    <video muted loop playsinline autoplay preload="auto"
+                           poster="./assets/videos/posters/${c.file.replace('.mp4', '.jpg')}"
+                           data-src="./assets/videos/gallery/${c.file}"></video>
+                  </div>
+                  <p class="video-caption"><span class="clip-meta">${c.file.split("_")[0]} &middot; ${c.dur}s</span></p>`;
+                row.appendChild(col);
+                io.observe(col.querySelector("video"));
+            }
+            gallery.appendChild(row);
+        }
+
+    </script>
+</body>
+
+</html>
