@@ -217,7 +217,7 @@
                 <!-- TODO: 替换为真实链接 -->
                 <a href="#" class="btn btn-dark pill">Paper</a>
                 <a href="#" class="btn btn-dark pill">arXiv</a>
-                <a href="https://github.com/showlab/Show-Pro" class="btn btn-dark pill">Code</a>
+                <a href="https://github.com/showlab/" class="btn btn-dark pill">Code</a>
                 <a href="https://huggingface.co/showlab" class="btn btn-dark pill">Models</a>
                 <a href="#demos" class="btn btn-outline-secondary pill">Demos</a>
             </div>
@@ -323,7 +323,7 @@
         <div class="container" style="max-width: 1180px;">
             <h2 class="section-title">Real-Robot Demonstrations</h2>
             <div class="section-rule"></div>
-            <p class="subtitle small mb-4">32 rollouts, all driven through the same semantic action space.</p>
+            <p class="subtitle small mb-4">32 rollouts, shown at 2&times; speed, all driven through the same semantic action space.</p>
             <div id="gallery"></div>
         </div>
     </section>
@@ -475,9 +475,10 @@
 
     <script src="./assets/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        window.onerror = (m, src, line) => { document.title = "JSERR line " + line + ": " + m; };
         // all clips render at once, grouped by capture setting; only the ones
         // on screen actually fetch and decode, so 61 <video> nodes stay cheap
-        const CLIPS = [{"file":"C0708_web_auto_white_table_1x.mp4","dur":23.4,"tag":"Tabletop manipulation"},{"file":"C0712_web_auto_white_table_1x.mp4","dur":21.6,"tag":"Tabletop manipulation"},{"file":"C0714_web_auto_white_table_1x.mp4","dur":28.0,"tag":"Tabletop manipulation"},{"file":"C0716_web_auto_white_table_1x.mp4","dur":22.6,"tag":"Tabletop manipulation"},{"file":"C0717_web_auto_white_table_1x.mp4","dur":25.5,"tag":"Tabletop manipulation"},{"file":"C0718_web_auto_white_table_1x.mp4","dur":35.5,"tag":"Tabletop manipulation"},{"file":"C0719_web_auto_white_table_1x.mp4","dur":24.5,"tag":"Tabletop manipulation"},{"file":"C0720_web_auto_white_table_1x.mp4","dur":26.2,"tag":"Tabletop manipulation"},{"file":"C0721_web_auto_white_table_1x.mp4","dur":22.0,"tag":"Tabletop manipulation"},{"file":"C0725_web_auto_white_table_1x.mp4","dur":30.0,"tag":"Tabletop manipulation"},{"file":"C0733_web_auto_white_table_1x.mp4","dur":23.4,"tag":"Tabletop manipulation"},{"file":"C0734_web_auto_white_table_1x.mp4","dur":28.7,"tag":"Tabletop manipulation"},{"file":"C0737_web_auto_white_table_1x.mp4","dur":28.4,"tag":"Tabletop manipulation"},{"file":"C0739_web_auto_white_table_1x.mp4","dur":30.2,"tag":"Tabletop manipulation"},{"file":"C0747_web_auto_white_table_1x.mp4","dur":56.0,"tag":"Tabletop manipulation"},{"file":"C0748_web_auto_white_table_1x.mp4","dur":23.5,"tag":"Tabletop manipulation"},{"file":"C0753_web_auto_white_table_1x.mp4","dur":91.0,"tag":"Tabletop manipulation"},{"file":"C0758_web_auto_white_table_1x.mp4","dur":17.5,"tag":"Tabletop manipulation"},{"file":"C0779_web_auto_white_table_1x.mp4","dur":7.0,"tag":"Tabletop manipulation"},{"file":"C0783_web_auto_white_table_1x.mp4","dur":23.0,"tag":"Tabletop manipulation"},{"file":"C0784_web_auto_white_table_1x.mp4","dur":25.2,"tag":"Tabletop manipulation"},{"file":"C0791_web_auto_white_table_1x.mp4","dur":112.8,"tag":"Tabletop manipulation"},{"file":"C0793_web_auto_white_table_1x.mp4","dur":82.7,"tag":"Tabletop manipulation"},{"file":"C0798_web_auto_white_table_1x.mp4","dur":102.5,"tag":"Tabletop manipulation"},{"file":"C0800_web_auto_white_table_1x.mp4","dur":56.1,"tag":"Tabletop manipulation"},{"file":"C0801_web_auto_white_table_1x.mp4","dur":50.3,"tag":"Tabletop manipulation"},{"file":"C0802_web_auto_white_table_1x.mp4","dur":45.5,"tag":"Tabletop manipulation"},{"file":"C0803_web_auto_white_table_1x.mp4","dur":53.0,"tag":"Tabletop manipulation"},{"file":"C0804_web_auto_white_table_1x.mp4","dur":65.0,"tag":"Tabletop manipulation"},{"file":"C0702_web_neutral_1x.mp4","dur":318.6,"tag":"Neutral background"},{"file":"C0723_web_neutral_1x.mp4","dur":23.4,"tag":"Neutral background"},{"file":"C0724_web_neutral_1x.mp4","dur":25.5,"tag":"Neutral background"}];
+        const CLIPS = [{"file":"C0708_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0712_web_auto_white_table_2x.mp4","dur":10.9,"tag":"Tabletop manipulation"},{"file":"C0714_web_auto_white_table_2x.mp4","dur":14.1,"tag":"Tabletop manipulation"},{"file":"C0716_web_auto_white_table_2x.mp4","dur":11.4,"tag":"Tabletop manipulation"},{"file":"C0717_web_auto_white_table_2x.mp4","dur":12.8,"tag":"Tabletop manipulation"},{"file":"C0718_web_auto_white_table_2x.mp4","dur":17.8,"tag":"Tabletop manipulation"},{"file":"C0719_web_auto_white_table_2x.mp4","dur":12.3,"tag":"Tabletop manipulation"},{"file":"C0720_web_auto_white_table_2x.mp4","dur":13.2,"tag":"Tabletop manipulation"},{"file":"C0721_web_auto_white_table_2x.mp4","dur":11.1,"tag":"Tabletop manipulation"},{"file":"C0725_web_auto_white_table_2x.mp4","dur":15.1,"tag":"Tabletop manipulation"},{"file":"C0733_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0734_web_auto_white_table_2x.mp4","dur":14.4,"tag":"Tabletop manipulation"},{"file":"C0737_web_auto_white_table_2x.mp4","dur":14.3,"tag":"Tabletop manipulation"},{"file":"C0739_web_auto_white_table_2x.mp4","dur":15.2,"tag":"Tabletop manipulation"},{"file":"C0747_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0748_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0753_web_auto_white_table_2x.mp4","dur":45.6,"tag":"Tabletop manipulation"},{"file":"C0758_web_auto_white_table_2x.mp4","dur":8.8,"tag":"Tabletop manipulation"},{"file":"C0779_web_auto_white_table_2x.mp4","dur":3.6,"tag":"Tabletop manipulation"},{"file":"C0783_web_auto_white_table_2x.mp4","dur":11.6,"tag":"Tabletop manipulation"},{"file":"C0784_web_auto_white_table_2x.mp4","dur":12.7,"tag":"Tabletop manipulation"},{"file":"C0791_web_auto_white_table_2x.mp4","dur":56.5,"tag":"Tabletop manipulation"},{"file":"C0793_web_auto_white_table_2x.mp4","dur":41.4,"tag":"Tabletop manipulation"},{"file":"C0798_web_auto_white_table_2x.mp4","dur":51.3,"tag":"Tabletop manipulation"},{"file":"C0800_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0801_web_auto_white_table_2x.mp4","dur":25.2,"tag":"Tabletop manipulation"},{"file":"C0802_web_auto_white_table_2x.mp4","dur":22.8,"tag":"Tabletop manipulation"},{"file":"C0803_web_auto_white_table_2x.mp4","dur":26.6,"tag":"Tabletop manipulation"},{"file":"C0804_web_auto_white_table_2x.mp4","dur":32.6,"tag":"Tabletop manipulation"},{"file":"C0702_web_neutral_2x.mp4","dur":159.4,"tag":"Neutral background"},{"file":"C0723_web_neutral_2x.mp4","dur":11.8,"tag":"Neutral background"},{"file":"C0724_web_neutral_2x.mp4","dur":12.8,"tag":"Neutral background"}];
         const gallery = document.getElementById("gallery");
 
         // A <video> cannot start playing the instant its src is set, so calling
@@ -544,7 +545,7 @@
                   <div class="video-card">
                     <video muted loop playsinline autoplay preload="auto"
                            poster="./assets/videos/posters/${c.file.replace('.mp4', '.jpg')}"
-                           data-src="./assets/videos/gallery/${c.file}"></video>
+                           data-src="./assets/videos/gallery_2x/${c.file}"></video>
                   </div>
                   <p class="video-caption"><span class="clip-meta">${c.file.split("_")[0]} &middot; ${c.dur}s</span></p>`;
                 row.appendChild(col);
@@ -553,6 +554,16 @@
             gallery.appendChild(row);
         }
 
+        // debug hook: report how many clips are actually advancing
+        window.__playing = () => [...document.querySelectorAll("video")]
+            .filter(v => !v.paused && v.currentTime > 0).length;
+        setTimeout(() => {
+            const d = document.createElement("div");
+            d.id = "playstat";
+            d.style.display = "none";
+            d.textContent = "playing=" + window.__playing() + " main=" + (document.querySelector(".main-video video")?.currentTime.toFixed(1) ?? "n/a");
+            document.body.appendChild(d);
+        }, 5000);
     </script>
 </body>
 
