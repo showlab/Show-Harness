@@ -1,5 +1,5 @@
 
-# Show-Pro: Embodied Harness Enables VLMs to Play Robots
+# Show-Harness: Just a VLM Agent Can Play Robots
 
 <p align="center">
   <em>A compact semantic interface that lets vision–language models act on the physical world.</em>
@@ -17,17 +17,26 @@
 
 ---
 
-This branch hosts the **project page** for Show-Pro. It is a static site — no build
-step and no package manager — so it can be served directly by GitHub Pages.
+This branch hosts the **project page** for Show-Harness. It is a static site — no build
+step and no package manager — so GitHub Pages can serve it as it stands.
 
 ```
-index.html            the whole page
-assets/dist/          Bootstrap 5.3 (vendored)
-assets/images/        figures, all vector SVG
-assets/videos/        the overview clip, the GUMI rollout and 32 real-robot demos
-assets/videos/posters small JPEG covers so a tile shows content before its clip loads
-.nojekyll             keeps GitHub Pages from running Jekyll over assets/
+index.html             the whole page, including the inlined experiment figures
+assets/dist/           Bootstrap 5.3 (vendored, minified build only)
+assets/images/         overview, method and teaser figures as SVG
+assets/videos/         the narrated overview clip and the GUMI rollout
+assets/videos/gallery_2x/  35 real-robot demos, sped up for playback
+assets/videos/posters/     JPEG covers so a tile shows content before its clip loads
+.nojekyll              keeps GitHub Pages from running Jekyll over assets/
 ```
+
+### What is not in this branch
+
+`.gitignore` keeps out everything the page does not actually load: the 1× gallery
+masters and their covers (~270 MB), the standalone copies of the figures that are
+inlined into `index.html`, Bootstrap's source maps and RTL build, and the internal
+preview page. Nothing here is generated at deploy time — what is committed is what
+is served.
 
 ### Local preview
 
@@ -40,10 +49,16 @@ Opening `index.html` straight from disk also works, but a local server is closer
 production: `file://` does not support HTTP range requests, so the demo videos have to
 download in full before they start.
 
-### Editing the demo gallery
+### Where the page comes from
 
-The gallery is generated from a manifest inside `index.html` — the `CLIPS` array holds
-one `{file, dur, tag}` entry per clip. Adding a demo means dropping the `.mp4` into
-`assets/videos/gallery/`, a matching `.jpg` cover into `assets/videos/posters/`, and one
-line into that array. Clips are grouped by `tag` and load lazily as they scroll into
-view, so the page stays responsive even with dozens of them.
+The page is authored in the main repository's working tree, not here, and three tools
+own the parts that would otherwise drift:
+
+- `page/tools/gallery.py` encodes a demo clip, cuts its cover and rewrites the `CLIPS`
+  manifest inside `index.html`. `gallery.py check` reports anything out of sync.
+- `page/tools/figures.py` inlines the experiment figures so the page can animate their
+  bars and switches, namespacing every id on the way in.
+- `page/tools/illustrations.py` shrinks the hand-drawn figures for the web.
+
+Inside `index.html`, `CAT_CLIPS` decides which shelf each demo sits on and in what
+order; it is keyed by capture id so it survives a manifest rebuild.

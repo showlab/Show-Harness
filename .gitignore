@@ -1,0 +1,26 @@
+# What this branch publishes is the built page and only the files it actually
+# loads. Everything below either has no reference in index.html or exists only
+# to produce something that does.
+
+# Editing masters for the gallery. The published clips are the 2x encodes in
+# gallery_2x/; these 1x originals are ~270 MB and nothing links to them.
+assets/videos/gallery/
+assets/videos/posters/*_1x.jpg
+
+# The experiment figures are inlined into index.html by page/tools/figures.py so
+# that the page can animate their bars and switches. The standalone copies it
+# also writes are a build by-product -- the page never fetches them.
+assets/images/action_repr.svg
+assets/images/generalization.svg
+assets/images/model_api.svg
+assets/images/open_source.svg
+assets/images/plugins.svg
+
+# Bootstrap ships source maps and an RTL build; index.html loads neither.
+assets/dist/**/*.map
+assets/dist/css/bootstrap.rtl.min.css
+
+# Internal preview, not part of the site.
+_res_preview.html
+
+.DS_Store
