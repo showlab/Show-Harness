@@ -8,15 +8,64 @@
     <title>Show-Harness</title>
     <link rel="icon" href="./assets/images/showlab.ico" type="image/x-icon">
     <link href="./assets/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>
+        // Runs before the body paints: a theme applied from the bottom of the
+        // page would show one frame of the wrong one first.
+        (() => {
+            const saved = (() => { try { return localStorage.getItem("theme"); } catch { return null; } })();
+            const dark = saved ? saved === "dark"
+                               : matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.dataset.bsTheme = dark ? "dark" : "light";
+        })();
+    </script>
     <style>
         :root {
+            /* the logo hues carry across both themes untouched */
             --sl-blue: #0071BC;
             --sl-logo-blue: #669ED3;
             --sl-green: #67A651;
             --sl-red: #D85E5D;
             --sl-orange: #F3AA68;
+
             --sl-ink: #16191D;
-            --sl-gray: #6E7781;
+            --sl-gray: #656D77;
+            --sl-accent: #0071BC;        /* accent text, must stay legible on --sl-tint */
+            --sl-surface: #fff;          /* raised things: chips, arrows, cards */
+            --sl-surface-hi: #eff5fb;    /* the same, hovered */
+            --sl-sunken: #f6f8fa;        /* code blocks */
+            --sl-line: rgba(0, 0, 0, .12);
+            --sl-line-soft: rgba(0, 0, 0, .07);
+            --sl-dot: rgba(0, 0, 0, .16);
+            --sl-shadow: rgba(16, 25, 40, .12);
+            --sl-tint: rgba(102, 158, 211, .14);
+            --hero-top: #f7f9fc;
+            --hero-bottom: #eef3f9;
+            --sl-callout: #f7fafd;       /* tinted panels: takeaways, stat cards */
+            --sl-inset: rgba(255, 255, 255, .7);
+            --fig-mat: transparent;      /* light: a figure needs no backing */
+        }
+
+        /* Dark. The figures are the constraint: they are drawn dark-on-light and
+           inlined as SVG, so recolouring them is not an option -- 277 fills of
+           ink and 64 of white. They keep their own paper (--fig-mat) and the page
+           moves around them, which is also how a printed figure behaves. */
+        [data-bs-theme="dark"] {
+            --sl-ink: #E4E8EC;
+            --sl-gray: #98A2AD;
+            --sl-accent: #8CBEEC;
+            --sl-surface: #21262d;
+            --sl-surface-hi: #2b323a;
+            --sl-sunken: #161a1f;
+            --sl-line: rgba(255, 255, 255, .14);
+            --sl-line-soft: rgba(255, 255, 255, .08);
+            --sl-dot: rgba(255, 255, 255, .24);
+            --sl-shadow: rgba(0, 0, 0, .55);
+            --sl-tint: rgba(102, 158, 211, .18);
+            --hero-top: #171c22;
+            --hero-bottom: #10141a;
+            --sl-callout: #1c232b;
+            --sl-inset: rgba(255, 255, 255, .06);
+            --fig-mat: #eef1f4;
         }
 
         /* Arial, to match the figures -- they are set in it too */
@@ -25,8 +74,8 @@
         body { font-family: Arial, "Liberation Sans", Helvetica, sans-serif; }
 
         .hero {
-            background: linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
-            border-bottom: 1px solid rgba(0, 0, 0, .06);
+            background: linear-gradient(180deg, var(--hero-top) 0%, var(--hero-bottom) 100%);
+            border-bottom: 1px solid var(--sl-line-soft);
         }
 
         .brand-S { color: var(--sl-logo-blue); }
@@ -57,7 +106,7 @@
             text-underline-offset: .18em;
             text-decoration-color: rgba(108, 117, 125, .45);
         }
-        .authors a:hover { color: var(--sl-blue); text-decoration-color: currentColor; }
+        .authors a:hover { color: var(--sl-accent); text-decoration-color: currentColor; }
         .authors sup { color: var(--sl-gray); }
 
         /* brand marks sit inline with the label and take the button's own colour */
@@ -81,13 +130,43 @@
             margin-bottom: .35rem;
         }
 
+        .theme-toggle {
+            position: fixed;
+            top: .85rem;
+            right: .85rem;
+            z-index: 1080;
+            width: 2.3rem;
+            height: 2.3rem;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 999px;
+            border: 1px solid var(--sl-line);
+            background: var(--sl-surface);
+            color: var(--sl-ink);
+            box-shadow: 0 2px 10px var(--sl-shadow);
+            cursor: pointer;
+            transition: background .15s, border-color .15s, transform .12s;
+        }
+
+        .theme-toggle:hover { background: var(--sl-surface-hi); border-color: var(--sl-logo-blue); }
+        .theme-toggle:active { transform: scale(.92); }
+        .theme-toggle:focus-visible { outline: 2px solid var(--sl-logo-blue); outline-offset: 2px; }
+        .theme-toggle svg { width: 1.05rem; height: 1.05rem; fill: currentColor; }
+
+        /* one icon each way; the other is not rendered rather than hidden, so
+           screen readers do not read both */
+        .theme-toggle .moon { display: none; }
+        [data-bs-theme="dark"] .theme-toggle .sun { display: none; }
+        [data-bs-theme="dark"] .theme-toggle .moon { display: block; }
+
         .title-note {
             white-space: nowrap;
             margin-left: .6rem;
             font-size: .5em;
             font-weight: 600;
             letter-spacing: 0;
-            color: var(--sl-logo-blue);
+            color: var(--sl-accent);
             vertical-align: .28em;
         }
         .section-rule {
@@ -99,6 +178,18 @@
         /* figures carry their own white ground, so no frame is added here */
         /* a wide figure reads better inset than edge-to-edge in its column */
         .figure-plain { max-width: var(--fig-w); margin-inline: auto; }
+
+        /* In dark mode a figure keeps its own light ground rather than being
+           recoloured -- the experiment panels are inlined SVG drawn dark-on-light,
+           and inverting them would flip the data colours too. */
+        .figure-plain, .video-card { background: var(--fig-mat); }
+
+        [data-bs-theme="dark"] .figure-plain {
+            padding: .7rem;
+            border-radius: .7rem;
+        }
+
+        [data-bs-theme="dark"] .fig-caption { color: var(--sl-gray); }
         .figure-plain img { display: block; width: 100%; height: auto; }
 
         /* ---------- scroll reveal ----------
@@ -182,8 +273,8 @@
             font-size: .82rem;
             padding: .32rem .8rem;
             border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, .12);
-            background: #fff;
+            border: 1px solid var(--sl-line);
+            background: var(--sl-surface);
             color: var(--sl-gray);
             cursor: pointer;
             transition: background .15s, color .15s, border-color .15s;
@@ -201,7 +292,7 @@
             border-radius: 999px;
             background: linear-gradient(180deg, rgba(102, 158, 211, .13), rgba(102, 158, 211, .07));
             border: 1px solid rgba(102, 158, 211, .22);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
+            box-shadow: inset 0 1px 0 var(--sl-inset);
             overflow: hidden;
             white-space: nowrap;
             min-width: 0;
@@ -242,13 +333,13 @@
             transition: background .18s ease, color .18s ease, box-shadow .18s ease;
         }
 
-        .deck-sub:hover { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--sl-ink); }
+        .deck-sub:hover { background: var(--sl-surface); border-color: transparent; color: var(--sl-ink); }
 
         .deck-sub.is-on {
-            background: #fff;
+            background: var(--sl-surface);
             border-color: transparent;
             color: var(--sl-ink);
-            box-shadow: 0 1px 3px rgba(16, 25, 45, .14);
+            box-shadow: 0 1px 3px var(--sl-shadow);
         }
 
         .deck-sub.is-on .n { color: var(--sl-logo-blue); opacity: 1; }
@@ -275,8 +366,8 @@
         .deck-arrow {
             width: 2.4rem; height: 2.4rem;
             border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, .14);
-            background: #fff;
+            border: 1px solid var(--sl-line);
+            background: var(--sl-surface);
             color: var(--sl-ink);
             display: grid; place-items: center;
             font-size: 1.15rem; line-height: 1;
@@ -284,7 +375,7 @@
             transition: background .15s, border-color .15s, transform .12s, opacity .15s;
         }
 
-        .deck-arrow:hover:not([disabled]) { background: #eff5fb; border-color: var(--sl-logo-blue); }
+        .deck-arrow:hover:not([disabled]) { background: var(--sl-surface-hi); border-color: var(--sl-logo-blue); }
         .deck-arrow:active:not([disabled]) { transform: scale(.93); }
         .deck-arrow[disabled] { opacity: .25; cursor: default; }
         .deck-arrow:focus-visible { outline: 2px solid var(--sl-logo-blue); outline-offset: 2px; }
@@ -301,7 +392,7 @@
             font-weight: 400;
             font-size: .8rem;
             color: var(--sl-gray);
-            border: 1px solid rgba(0, 0, 0, .12);
+            border: 1px solid var(--sl-line);
             border-radius: 999px;
             padding: .1rem .5rem;
         }
@@ -316,15 +407,15 @@
         .deck-btn {
             width: 2.3rem; height: 2.3rem;
             border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, .14);
-            background: #fff;
+            border: 1px solid var(--sl-line);
+            background: var(--sl-surface);
             color: var(--sl-ink);
             display: grid; place-items: center;
             font-size: 1.1rem; line-height: 1;
             padding: 0;
             transition: background .15s, border-color .15s, transform .12s;
         }
-        .deck-btn:hover { background: #eff5fb; border-color: var(--sl-logo-blue); }
+        .deck-btn:hover { background: var(--sl-surface-hi); border-color: var(--sl-logo-blue); }
         .deck-btn:active { transform: scale(.93); }
         .deck-btn:focus-visible { outline: 2px solid var(--sl-logo-blue); outline-offset: 2px; }
         .deck-pos {
@@ -379,10 +470,10 @@
         .deck-dot {
             width: .5rem; height: .5rem; padding: 0;
             border: 0; border-radius: 999px;
-            background: rgba(0, 0, 0, .16);
+            background: var(--sl-dot);
             transition: width .25s, background .25s;
         }
-        .deck-dot:hover { background: rgba(0, 0, 0, .32); }
+        .deck-dot:hover { background: var(--sl-gray); }
         .deck-dot.is-on { width: 1.5rem; background: var(--sl-logo-blue); }
 
         .clip-meta {
@@ -406,7 +497,7 @@
             /* no backing colour: the clip's antialiased corner pixels blend
                whatever is behind the video, and a black backing showed there as
                a dark arc tracing each corner (measured 152/255 against 245) */
-            box-shadow: 0 8px 28px rgba(16, 25, 40, .12);
+            box-shadow: 0 8px 28px var(--sl-shadow);
         }
 
         .main-video video {
@@ -437,7 +528,7 @@
             line-height: 1.55;
         }
 
-        .unit-desc code { color: var(--sl-blue); font-weight: 700; }
+        .unit-desc code { color: var(--sl-accent); font-weight: 700; }
 
         .unit-chip {
             cursor: pointer;
@@ -448,25 +539,25 @@
             padding: .3rem .6rem;
             margin: .2rem;
             border-radius: .4rem;
-            background: rgba(102, 158, 211, .14);
-            color: var(--sl-blue);
+            background: var(--sl-tint);
+            color: var(--sl-accent);
             border: 1px solid rgba(102, 158, 211, .3);
         }
 
         .unit-chip:hover, .unit-chip:focus-visible { background: rgba(102, 158, 211, .28); }
 
         .unit-chip.is-on {
-            background: var(--sl-blue);
-            border-color: var(--sl-blue);
+            background: var(--sl-accent);
+            border-color: var(--sl-accent);
             color: #fff;
         }
 
         /* The vocabulary is the point of this section, so it introduces itself:
            each unit flashes once, in order, the first time the list is seen. */
         @keyframes unit-flash {
-            0%   { background: rgba(102, 158, 211, .14); color: var(--sl-blue); }
-            35%  { background: var(--sl-blue); color: #fff; }
-            100% { background: rgba(102, 158, 211, .14); color: var(--sl-blue); }
+            0%   { background: var(--sl-tint); color: var(--sl-accent); }
+            35%  { background: var(--sl-accent); color: #fff; }
+            100% { background: var(--sl-tint); color: var(--sl-accent); }
         }
 
         .unit-chip.flash { animation: unit-flash .5s ease-out both; }
@@ -538,8 +629,8 @@
         }
 
         pre.bibtex {
-            background: #f6f8fa;
-            border: 1px solid rgba(0, 0, 0, .08);
+            background: var(--sl-sunken);
+            border: 1px solid var(--sl-line);
             border-radius: .6rem;
             padding: 1rem 1.25rem;
             font-size: .85rem;
@@ -559,7 +650,7 @@
         .res-text {
             font-size: .95rem;
             line-height: 1.7;
-            color: #33383f;
+            color: var(--sl-ink);
         }
 
         /* a one-line claim under a figure, for the thing the figure is really
@@ -567,9 +658,9 @@
         .res-takeaway {
             font-size: .95rem;
             line-height: 1.65;
-            color: #33383f;
+            color: var(--sl-ink);
             border-left: 3px solid var(--sl-logo-blue);
-            background: #f7fafd;
+            background: var(--sl-callout);
             border-radius: 0 .4rem .4rem 0;
             padding: .7rem 1rem;
             margin: 0 0 1.1rem;
@@ -577,10 +668,10 @@
 
         .stat {
             height: 100%;
-            border: 1px solid rgba(0, 0, 0, .09);
+            border: 1px solid var(--sl-line);
             border-radius: .7rem;
             padding: 1rem 1.1rem;
-            background: #fbfcfe;
+            background: var(--sl-callout);
         }
 
         .stat-lab {
@@ -592,7 +683,7 @@
         .stat-val {
             font-size: 1.9rem;
             font-weight: 700;
-            color: var(--sl-blue);
+            color: var(--sl-accent);
             line-height: 1.1;
         }
 
@@ -610,6 +701,9 @@
 </head>
 
 <body class="d-flex flex-column h-100">
+
+    <button id="themeToggle" class="theme-toggle" type="button"
+            aria-label="Switch between light and dark" aria-pressed="false"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-13a1 1 0 0 1-1-1V1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1zm0 20a1 1 0 0 1-1-1v-2a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1zM4 13H2a1 1 0 1 1 0-2h2a1 1 0 1 1 0 2zm18 0h-2a1 1 0 1 1 0-2h2a1 1 0 1 1 0 2zM5.6 7.05 4.2 5.63a1 1 0 0 1 1.42-1.42L7.03 5.6A1 1 0 0 1 5.6 7.05zm12.8 12.8-1.42-1.42a1 1 0 0 1 1.42-1.42l1.41 1.42a1 1 0 0 1-1.41 1.42zM18.4 7.05A1 1 0 0 1 16.97 5.6l1.42-1.41a1 1 0 1 1 1.41 1.42zM5.63 19.8a1 1 0 0 1-.02-1.44l1.42-1.41a1 1 0 0 1 1.42 1.42L7.03 19.8a1 1 0 0 1-1.4 0z"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 13.2A9 9 0 1 1 10.8 2.4 a7 7 0 0 0 10.8 10.8z"/></svg></button>
 
     <!-- ================= HERO ================= -->
     <section class="hero py-5">
@@ -11530,6 +11624,29 @@ z
 
         document.querySelectorAll(".fig-anim").forEach(armFigure);
         document.querySelectorAll(".reveal").forEach(el => riseIO.observe(el));
+
+        (() => {
+            const btn = document.getElementById("themeToggle");
+            if (!btn) return;
+            const root = document.documentElement;
+            const media = matchMedia("(prefers-color-scheme: dark)");
+            const paint = () => btn.setAttribute("aria-pressed", String(root.dataset.bsTheme === "dark"));
+            paint();
+            btn.addEventListener("click", () => {
+                const dark = root.dataset.bsTheme !== "dark";
+                root.dataset.bsTheme = dark ? "dark" : "light";
+                try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch { /* private mode */ }
+                paint();
+            });
+            // follow the system until the viewer has expressed a preference
+            media.addEventListener("change", e => {
+                let saved = null;
+                try { saved = localStorage.getItem("theme"); } catch { /* private mode */ }
+                if (saved) return;
+                root.dataset.bsTheme = e.matches ? "dark" : "light";
+                paint();
+            });
+        })();
 
         /* Action units: hover previews, click pins. The panel keeps a fixed
            minimum height so previewing never shifts the page under the cursor. */
