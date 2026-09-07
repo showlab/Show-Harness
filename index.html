@@ -46,6 +46,10 @@
         .fig-caption { max-width: var(--fig-w); margin: .85rem auto 0; text-align: left; }
         .subtitle { color: var(--sl-gray); font-weight: 400; }
 
+        /* a name is one word as far as wrapping is concerned -- "Wenzheng Zeng"
+           breaking across lines reads as two authors */
+        .authors a, .authors .au { white-space: nowrap; }
+
         .authors a {
             color: inherit;
             text-decoration: underline;
@@ -78,6 +82,7 @@
         }
 
         .title-note {
+            white-space: nowrap;
             margin-left: .6rem;
             font-size: .5em;
             font-weight: 600;
@@ -478,6 +483,60 @@
             .unit-chip.flash, .unit-chip.is-on { animation: none; }
         }
 
+        /* ---------- phones ----------
+           The desktop layout assumes a row wide enough for twelve action units
+           or five tabs. Below that they have to fold, and the interesting part
+           is folding them on purpose: left to itself the browser drops one chip
+           onto a line of its own, and the deck's capsule -- clipped for its
+           unfold animation -- hides whole shelves rather than wrapping them. */
+        @media (max-width: 575.98px) {
+            .wide-only { display: none; }
+
+            /* four resource pills on one line at 360 px: the label sets the floor,
+               so the savings have to come out of the padding and the row gap */
+            .pill { padding: .38rem .6rem; font-size: .82rem; }
+            .pill svg { margin-right: .34em; }
+            .hero .gap-2 { gap: .28rem !important; }
+
+            /* three across, so each group reads as two even rows instead of 5 + 1 */
+            .unit-rows > div {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: .35rem;
+                margin-bottom: .35rem;
+            }
+
+            .unit-chip { margin: 0; width: 100%; font-size: .74rem; padding: .3rem .2rem; }
+
+            .unit-desc { min-height: 4.6em; }
+
+            /* embodiments on the first line, the open shelf below them */
+            .deck-tabs > .deck-tab { order: 1; }
+
+            .deck-fold {
+                order: 2;
+                flex-basis: 100%;
+                display: none;
+                margin-right: 0;
+                opacity: 1;
+                transition: none;
+            }
+
+            .deck-fold[data-open="true"] { display: block; }
+
+            /* the capsule wraps here instead of clipping what will not fit */
+            .deck-subgroup {
+                display: flex;
+                flex-wrap: wrap;
+                white-space: normal;
+                overflow: visible;
+                gap: .3rem;
+                padding: .3rem .45rem;
+            }
+
+            .deck-elbow { display: none; }
+        }
+
         pre.bibtex {
             background: #f6f8fa;
             border: 1px solid rgba(0, 0, 0, .08);
@@ -566,7 +625,7 @@
                 <a href="https://www.baizechen.site/" target="_blank" rel="noopener">Zechen Bai</a><sup>*</sup>,
                 <a href="https://caozhijun.top/" target="_blank" rel="noopener">Zhijun Cao</a><sup>*</sup>,
                 <a href="https://wenzhengzeng.github.io/" target="_blank" rel="noopener">Wenzheng Zeng</a><sup>*</sup>,
-                <a href="https://qhlin.me/" target="_blank" rel="noopener">Kevin Qinghong Lin</a>,<br>
+                <a href="https://qhlin.me/" target="_blank" rel="noopener">Kevin Qinghong Lin</a>,<br class="wide-only">
                 <a href="https://linyq17.github.io/" target="_blank" rel="noopener">Yiqi Lin</a>,
                 <a href="https://ethanliang99.github.io/" target="_blank" rel="noopener">Guoqiang Liang</a>,
                 <a href="https://kevinskwk.github.io/" target="_blank" rel="noopener">Kevin Yuchen Ma</a>,
