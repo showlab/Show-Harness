@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Show-Harness · Dual-Arm Teleop</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!--
+  Dual-arm teleop console (white), wired to the real backend served by
+  scripts/trajectory/webui/collect_rollouts_web_dual.py (default port 8620).
+
+  Launch with scripts/trajectory/webui/dual_live.sh - it installs this file as
+  the server's UI (backing up the stock one once) and starts the collector:
+
+      scripts/trajectory/webui/dual_live.sh data/rollouts_dual --sim   # no hardware
+      scripts/trajectory/webui/dual_live.sh data/rollouts_dual         # real dual-Piper rig
+
+  Reads  GET  /api/state · /stream/agentview · /stream/wrist_left · /stream/wrist_right
+  Writes POST /api/step {left:[tok...],right:[tok...]} · /api/start · /api/stop · /api/cancel
+
+  Keys - left arm : WASD move · QE up/down · Left-Shift grasp · Left-Ctrl still · R release · ZX rotate
+         right arm: IJKL move · UO up/down · Right-Shift grasp · Right-Ctrl still · . release · NM rotate
+         1-9 prefix repeats · Enter commits · Backspace clears · P start/stop · CC cancel · ? help
+-->
+<style>
+  :root{
+    --blue:#669ED3;    /* left arm  */
+    --green:#67A651;   /* right arm · ok · task done */
+    --orange-ink:#c47c21; /* armed direction key - readable form of slLogoOrange #F3AA68 */
+    --purple:#9b7fc4;     /* the QUEUED slot only */
+    --blue-ink:#3a72a6;   /* left-arm text: the accent is too light at 14px */
+    --green-ink:#4a7a38;  /* right-arm text, same reason */
+    --ink:#16191d; --ink2:#464c54; --dim:#8b929b;
+    --line:#e5e8ec; --soft:#f7f9fb; --soft2:#eef1f5;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#fff;color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  body:focus{outline:none}
+  body{min-height:100vh}
+  #app{display:flex;flex-direction:column;gap:10px;min-height:100vh;padding:12px}
+  button{font:inherit;cursor:pointer;color:inherit}
+
+  /* Every band is its own rounded module on the white page. */
+
+  /* ---------- task bar ---------- */
+  #topbar{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:12px 16px;
+    border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+  #topbar .lb{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  #v-task{font-size:17px;font-weight:600;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  #saved{margin-left:auto;font-size:13px;color:var(--dim);white-space:nowrap}
+
+  /* ---------- camera views ---------- */
+  #views{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;min-height:210px}
+  .view{position:relative;background:var(--soft2);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0}
+  .view img{width:100%;height:100%;object-fit:contain}
+  .view .tag{position:absolute;top:10px;left:10px;font-size:16px;font-weight:700;letter-spacing:.05em;
+    background:#fffffff2;border:1px solid var(--line);padding:5px 12px;border-radius:9px;color:var(--ink2)}
+  .view .tag.l{color:var(--blue-ink);border-color:#cfe0f0}
+  .view .tag.r{color:var(--green-ink);border-color:#d5e6cc}
+
+  /* ---------- result line + banners ---------- */
+  #result{flex:0 0 auto;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;
+    font-family:var(--mono);font-size:17px;font-weight:600;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  #result.err{background:#fdf5f5;color:#a8413f;border-color:#f0cfce}
+  #result.flash{background:#f1f7ee;border-color:#d6e6cd}
+  #banners{flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+  .banner{padding:11px 16px;font-size:15px;font-weight:700;display:none;
+    border:1px solid;border-radius:12px}
+  #banner-gap{background:#fbeeee;color:#a8413f;border-color:#f0cfce}
+  #banner-done{background:#eef5ea;color:#4d7f3c;border-color:#d6e6cd}
+  .banner.on{display:block}
+
+  /* ---------- control deck ---------- */
+  #deck{flex:0 0 auto;display:flex;align-items:stretch;gap:10px}
+  .cluster{flex:1 1 0;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+  .cluster.l{border-top:3px solid var(--blue)}
+  .cluster.r{border-top:3px solid var(--green)}
+  .cluster h3{margin:0 0 10px;font-size:14px;letter-spacing:.08em;font-weight:700;
+    display:flex;justify-content:space-between;align-items:baseline}
+  .cluster.l h3 .nm{color:var(--blue-ink)}
+  .cluster.r h3 .nm{color:var(--green-ink)}
+  .hold-chip{font-size:13px;font-weight:600;padding:3px 10px;border-radius:7px;
+    background:var(--soft2);color:var(--dim)}
+  .hold-chip.yes{background:#eef5ea;color:#4d7f3c}
+
+  /* WASD proper: FWD alone on top, LEFT/BACK/RIGHT underneath - nothing in the middle. */
+  .wasd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .pairrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .pairrow.three{grid-template-columns:1fr 1fr 1fr}
+
+  /* One neutral ground for every action key; the border carries the 3:1
+     control-boundary contrast. .armed stays LAST so a queued key reads amber. */
+  .abtn{min-height:58px;border:1px solid #8695a7;border-radius:10px;background:#eef1f6;
+    color:#232930;font-family:var(--mono);font-size:18px;font-weight:700;position:relative;
+    transition:.12s}
+  .abtn:hover{background:#e2e7ee;border-color:#6d7d90}
+  .abtn:active{transform:translateY(1px)}
+  .abtn.armed{background:#fadfb8;border-color:var(--orange-ink);color:#6f4310;
+    box-shadow:inset 0 0 0 1px #c47c2159}
+  .abtn.armed:hover{background:#f7d3a2}
+  .abtn .kk{position:absolute;left:8px;bottom:5px;font-size:11px;font-weight:700;
+    font-style:normal;color:#6d7d90;letter-spacing:.04em}
+  .abtn.armed .kk{color:#96631d}
+  .abtn .n{position:absolute;top:4px;right:9px;font-size:13px;color:#6f4310;font-weight:800}
+
+  .qrow{margin-top:8px}
+  .qchip{width:100%;min-height:42px;border:1px dashed #8695a7;border-radius:10px;background:#f7f9fb;
+    color:#3d444c;font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:.04em}
+  .qchip:hover{background:#eef1f6;border-color:#6d7d90}
+  .qchip.set{border-style:solid;border-color:var(--purple);color:#55397e;background:#ece5f6}
+
+  #center{flex:0 0 262px;display:flex;flex-direction:column;gap:10px}
+  #rec-chip{font-size:14px;font-weight:700;padding:9px 10px;border-radius:10px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;text-align:center;background:var(--soft2);color:var(--ink2)}
+  #rec-chip.on{background:#fbeeee;color:#a8413f}
+  #rec-chip.off{visibility:hidden}   /* keeps the slot so COMMIT never shifts */
+  #commit{flex:1 1 auto;min-height:96px;border-radius:12px;border:2px solid var(--orange-ink);
+    background:#fadfb8;color:#6f4310;font-size:18px;font-weight:800;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+  #commit:hover{background:#f7d3a2}
+  #commit .sub{font-family:var(--mono);font-size:13px;font-weight:700;color:#6f4310}
+  #commit.idle{border-color:#8695a7;background:#eef1f6;color:#4a525b}
+  #commit.idle:hover{background:#e2e7ee}
+  #commit.idle .sub{color:#5b636c}
+  .recrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .recrow button{min-height:52px;border-radius:10px;border:1px solid #8695a7;background:#eef1f6;
+    color:#232930;font-size:16px;font-weight:700}
+  .recrow button:hover{background:#e2e7ee;border-color:#6d7d90}
+  #btn-start.on{border-color:#cd7876;color:#83322f;background:#fae3e2}
+  #btn-start.on:hover{background:#f6d8d6}
+  #btn-stop.ready{border-color:#6ba153;color:#356426;background:#e3eeda}
+  #btn-stop.ready:hover{background:#d6e6cb}
+  #btn-cancel{min-width:150px;height:40px;font-size:14px;font-weight:600;background:#eef1f6;
+    border:1px solid #8695a7;border-radius:10px;color:#732624}
+  #btn-cancel:hover{border-color:#cd7876;background:#fae3e2}
+  #btn-cancel.armed2{border-color:#c06d6b;color:#732624;background:#f6d8d6}
+
+  /* ---------- help overlay ---------- */
+  #help{position:fixed;inset:0;background:#16191d59;z-index:20;display:none;
+    align-items:center;justify-content:center;padding:24px}
+  #help.on{display:flex}
+  #help-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px 26px;
+    max-width:900px;max-height:100%;overflow:auto;box-shadow:0 24px 60px #16191d26}
+  #help h1{font-size:17px;margin:0 0 4px;letter-spacing:.04em}
+  #help p{font-size:13px;color:var(--ink2);margin:0 0 12px;line-height:1.6}
+  #help table{border-collapse:collapse;font-size:13px;width:100%}
+  #help td{padding:4px 12px 4px 0;vertical-align:top;color:var(--ink2)}
+  #help td.k{white-space:nowrap;width:1%}
+  #help h2{font-size:11px;letter-spacing:.12em;color:var(--dim);margin:16px 0 6px;font-weight:700}
+  #help code{font-family:var(--mono);color:#96631d}
+  kbd{background:#eef1f6;color:#232930;border:1px solid #8695a7;border-bottom-width:2px;
+    border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:12px;font-weight:600}
+
+  @media(max-width:1100px){#deck{flex-wrap:wrap}#center{flex:1 1 100%;order:-1}
+    #views{grid-template-columns:1fr;min-height:0}}
+</style>
+</head>
+<body tabindex="-1">
+<div id="app">
+
+  <div id="topbar">
+    <span class="lb">Task</span>
+    <span id="v-task">connecting…</span>
+    <span id="saved"></span>
+  </div>
+
+  <div id="views">
+    <div class="view"><span class="tag l">LEFT WRIST</span>
+      <img id="img-wl" alt="left wrist" src="/stream/wrist_left" data-stream="/stream/wrist_left"></div>
+    <div class="view"><span class="tag">EGO Agent View</span>
+      <img id="img-front" alt="front" src="/stream/agentview" data-stream="/stream/agentview"></div>
+    <div class="view"><span class="tag r">RIGHT WRIST</span>
+      <img id="img-wr" alt="right wrist" src="/stream/wrist_right" data-stream="/stream/wrist_right"></div>
+  </div>
+
+  <div id="result">ready — click START, then queue arm actions and COMMIT</div>
+  <div id="banners">
+    <div class="banner" id="banner-gap">&#9888; ARMS CLOSE (&lt; 8 cm) — move ONE arm at a time</div>
+    <div class="banner" id="banner-done">&#10003; TASK DONE — click STOP &amp; SAVE</div>
+  </div>
+
+  <div id="deck">
+    <div class="cluster l">
+      <h3><span class="nm">LEFT ARM</span><span class="hold-chip" id="hold-l">hand empty</span></h3>
+      <div class="wasd">
+        <span></span><button class="abtn" data-side="left" data-token="MV_FWD">FWD<i class="kk">W</i></button><span></span>
+        <button class="abtn" data-side="left" data-token="MV_LEFT">LEFT<i class="kk">A</i></button>
+        <button class="abtn" data-side="left" data-token="MV_BACK">BACK<i class="kk">S</i></button>
+        <button class="abtn" data-side="left" data-token="MV_RIGHT">RIGHT<i class="kk">D</i></button>
+      </div>
+      <div class="pairrow">
+        <button class="abtn" data-side="left" data-token="MV_UP">UP<i class="kk">Q</i></button>
+        <button class="abtn" data-side="left" data-token="MV_DOWN">DOWN<i class="kk">E</i></button>
+      </div>
+      <div class="pairrow three">
+        <button class="abtn grasp" data-side="left" data-token="GRASP">GRASP<i class="kk">L-Shift</i></button>
+        <button class="abtn release" data-side="left" data-token="RELEASE">RELEASE<i class="kk">R</i></button>
+        <button class="abtn still" data-side="left" data-token="STILL">STILL<i class="kk">L-Ctrl</i></button>
+      </div>
+      <div class="qrow">
+        <button class="qchip" id="q-left" title="queued action — click to clear">QUEUED  &mdash;</button>
+      </div>
+    </div>
+
+    <div id="center">
+      <div id="rec-chip" class="off"></div>
+      <button id="commit" class="idle">
+        <span>COMMIT</span>
+        <span class="sub" id="commit-sub">nothing queued</span>
+      </button>
+      <div class="recrow">
+        <button id="btn-start">&#9679; START</button>
+        <button id="btn-stop">&#9632; STOP &amp; SAVE</button>
+      </div>
+      <div class="recrow">
+        <button id="btn-cancel" style="grid-column:1 / -1">CANCEL (discard + home)</button>
+      </div>
+    </div>
+
+    <div class="cluster r">
+      <h3><span class="nm">RIGHT ARM</span><span class="hold-chip" id="hold-r">hand empty</span></h3>
+      <div class="wasd">
+        <span></span><button class="abtn" data-side="right" data-token="MV_FWD">FWD<i class="kk">I</i></button><span></span>
+        <button class="abtn" data-side="right" data-token="MV_LEFT">LEFT<i class="kk">J</i></button>
+        <button class="abtn" data-side="right" data-token="MV_BACK">BACK<i class="kk">K</i></button>
+        <button class="abtn" data-side="right" data-token="MV_RIGHT">RIGHT<i class="kk">L</i></button>
+      </div>
+      <div class="pairrow">
+        <button class="abtn" data-side="right" data-token="MV_UP">UP<i class="kk">U</i></button>
+        <button class="abtn" data-side="right" data-token="MV_DOWN">DOWN<i class="kk">O</i></button>
+      </div>
+      <div class="pairrow three">
+        <button class="abtn grasp" data-side="right" data-token="GRASP">GRASP<i class="kk">R-Shift</i></button>
+        <button class="abtn release" data-side="right" data-token="RELEASE">RELEASE<i class="kk">.</i></button>
+        <button class="abtn still" data-side="right" data-token="STILL">STILL<i class="kk">R-Ctrl</i></button>
+      </div>
+      <div class="qrow">
+        <button class="qchip" id="q-right" title="queued action — click to clear">QUEUED  &mdash;</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="help">
+  <div id="help-card">
+    <h1>DUAL-ARM TELEOP REFERENCE</h1>
+    <p>Press <kbd>?</kbd> or <kbd>Esc</kbd> to close.
+       <b>Click a button to queue that arm's next action</b> (click it again = repeat, max 9;
+       a different button replaces it; the center chip clears it). <b>COMMIT executes both
+       arms together as ONE synchronized step</b> — an arm with nothing queued holds STILL,
+       and STILL can also be queued explicitly (left/right <kbd>Ctrl</kbd>).
+       ROTATE is keyboard-only (<kbd>Z</kbd>/<kbd>X</kbd> left, <kbd>N</kbd>/<kbd>M</kbd> right).</p>
+
+    <h2>DIRECTIONS (same in all three views)</h2>
+    <p>FWD = image up · BACK = image down · LEFT = image left · RIGHT = image right
+       · 2 cm per step. The LEFT arm appears on the LEFT of the FRONT view.</p>
+
+    <h2>KEYBOARD (equivalent to the buttons)</h2>
+    <table>
+      <tr><td class="k"><kbd>W</kbd><kbd>S</kbd><kbd>A</kbd><kbd>D</kbd> / <kbd>Q</kbd><kbd>E</kbd> / <kbd>Z</kbd><kbd>X</kbd></td><td>LEFT arm fwd/back/left/right, up/down, rotate ccw/cw</td></tr>
+      <tr><td class="k">left <kbd>Shift</kbd> / left <kbd>Ctrl</kbd> / <kbd>R</kbd></td><td>LEFT arm grasp / explicit STILL / release</td></tr>
+      <tr><td class="k"><kbd>I</kbd><kbd>K</kbd><kbd>J</kbd><kbd>L</kbd> / <kbd>U</kbd><kbd>O</kbd> / <kbd>N</kbd><kbd>M</kbd></td><td>RIGHT arm, same layout</td></tr>
+      <tr><td class="k">right <kbd>Shift</kbd> / right <kbd>Ctrl</kbd> / <kbd>.</kbd></td><td>RIGHT arm grasp / explicit STILL / release</td></tr>
+      <tr><td class="k"><kbd>1</kbd>…<kbd>9</kbd> then a move key</td><td>queue it N times</td></tr>
+      <tr><td class="k"><kbd>Enter</kbd> / <kbd>Backspace</kbd></td><td>commit / clear queued</td></tr>
+      <tr><td class="k"><kbd>P</kbd> / <kbd>C</kbd><kbd>C</kbd></td><td>start-stop recording / cancel</td></tr>
+    </table>
+
+
+    <h2>READING THE PAGE</h2>
+    <table>
+      <tr><td class="k">result line</td><td><code>#47 ✓ L:FWD×3 + R:STILL</code> — the # is the executed-step counter since boot: <b>it must increase after every COMMIT</b></td></tr>
+      <tr><td class="k">HOLDING / hand empty</td><td>per-arm chip. A GRASP that catches nothing auto-reopens and the chip stays "hand empty" — re-align, then retry</td></tr>
+      <tr><td class="k">red banner</td><td>grippers under 8 cm apart — move one arm at a time (a warning, not a lock)</td></tr>
+      <tr><td class="k">green banner</td><td>task complete — STOP &amp; SAVE is allowed now</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* Dual-arm CLICK-FIRST teleop client: compose-and-commit.
+ *
+ * Each cluster queues its arm's next action (click again = repeat; the queued
+ * state is shown ON the button and in the center chip) and the big COMMIT button
+ * executes the pair as ONE synchronized step (an idle arm gets STILL). Buttons
+ * are self-verifying -- you click what you see -- and the keyboard does the
+ * same thing. The page shows exactly three kinds of state: the
+ * per-arm HOLDING chip, one result line ("#N ok L:... + R:...", where #N is the
+ * executed-step counter), and two conditional banners (arms-close, task-done).
+ */
+const STILL = "STILL";
+const MAX_COUNT = 9;
+const MSG_MS = 2500;
+const ERR_MS = 4000;
+const STREAM_RETRY_MS = 3000;
+
+const LEFT_KEYS = {
+  w: "MV_FWD", s: "MV_BACK", a: "MV_LEFT", d: "MV_RIGHT",
+  q: "MV_UP",  e: "MV_DOWN", z: "ROTATE_CCW", x: "ROTATE_CW",
+  r: "RELEASE",
+};
+const RIGHT_KEYS = {
+  i: "MV_FWD", k: "MV_BACK", j: "MV_LEFT", l: "MV_RIGHT",
+  u: "MV_UP",  o: "MV_DOWN", n: "ROTATE_CCW", m: "ROTATE_CW",
+  ".": "RELEASE",
+};
+// Left/right Shift and Ctrl are actions, not modifiers: Shift grasps, Ctrl
+// queues an explicit STILL for that arm. ev.code is what separates the sides.
+const SIDE_KEYS = {
+  ShiftLeft:    ["left",  "GRASP"], ShiftRight:   ["right", "GRASP"],
+  ControlLeft:  ["left",  "STILL"], ControlRight: ["right", "STILL"],
+};
+const NO_REPEAT = { GRASP: 1, RELEASE: 1, STILL: 1 };
+
+const $ = (id) => document.getElementById(id);
+let STATE = {};
+let digit = 0;                       // pending numeric prefix (keyboard only)
+let cancelArmed = 0;
+let pending = { left: null, right: null };   // {token, count} per side
+let msgHoldUntil = 0;
+
+/* ---------------- result line ---------------- */
+function show(text, bad, holdMs) {
+  const bar = $("result");
+  bar.textContent = text;
+  bar.className = bad ? "err" : "";
+  msgHoldUntil = Date.now() + (holdMs || (bad ? ERR_MS : MSG_MS));
+}
+function flashResult() {
+  const bar = $("result");
+  bar.classList.add("flash");
+  setTimeout(() => bar.classList.remove("flash"), 350);
+}
+
+/* ---------------- transport ----------------
+ * Requests are serialized: the rig executes one synchronized pair at a time, so
+ * a second COMMIT must not overtake the first. Every reply carries the fresh
+ * state, and that is what re-renders the deck. */
+let chain = Promise.resolve();
+
+function post(path, body, describe) {
+  const run = () => fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  }).then((r) => r.json().catch(() => ({ ok: false, message: "bad response" })))
+    .then((res) => {
+      if (res.state) render(res.state);
+      if (!res.ok) {
+        show("✗ REFUSED: " + (res.message || "error"), true);
+      } else if (res.executed) {
+        const n = res.state ? res.state.total_pairs : "?";
+        const noop = res.skipped ? "  (" + res.skipped + " no-op)" : "";
+        show("#" + n + " ✓ " + (describe || res.message) + noop, false);
+        flashResult();
+      } else if (res.message) {
+        show(res.message, false);
+      }
+      return res;
+    })
+    .catch((err) => { show("NETWORK ERROR: " + err, true); return { ok: false }; });
+  chain = chain.then(run, run);
+  return chain;
+}
+
+/* MJPEG streams drop when the server restarts or a camera hiccups - reconnect. */
+for (const img of document.querySelectorAll("#views img")) {
+  img.addEventListener("error", () => {
+    setTimeout(() => { img.src = img.dataset.stream + "?t=" + Date.now(); }, 1500);
+  });
+}
+
+/* ---------------- compose-and-commit ---------------- */
+function shortTok(p) {
+  if (!p) return "—";
+  return p.token.replace("MV_", "") + (p.count > 1 ? "×" + p.count : "");
+}
+function queueAction(side, token, times) {
+  const cur = pending[side];
+  if (NO_REPEAT[token]) {
+    pending[side] = { token: token, count: 1 };        // grippers and STILL never repeat
+  } else if (cur && cur.token === token) {
+    cur.count = Math.min(MAX_COUNT, cur.count + (times || 1));
+  } else {
+    pending[side] = { token: token, count: Math.min(MAX_COUNT, times || 1) };
+  }
+  renderDeck();
+}
+function clearQueue(side) {
+  if (side) pending[side] = null;
+  else pending = { left: null, right: null };
+  renderDeck();
+}
+function commit() {
+  if (!pending.left && !pending.right) {
+    show("nothing queued: click an arm button first, then COMMIT", true);
+    return;
+  }
+  const body = {};
+  const parts = [];
+  for (const side of ["left", "right"]) {
+    const p = pending[side];
+    parts.push((side === "left" ? "L:" : "R:") + shortTok(p || { token: STILL, count: 1 }));
+    if (p) body[side] = new Array(p.count).fill(p.token);
+  }
+  pending = { left: null, right: null };
+  renderDeck();
+  post("/api/step", body, parts.join(" + "));
+}
+
+/* ---------------- rendering ---------------- */
+function renderDeck() {
+  for (const side of ["left", "right"]) {
+    const p = pending[side];
+    const chip = $(side === "left" ? "q-left" : "q-right");
+    chip.textContent = "QUEUED  " + shortTok(p);
+    chip.className = "qchip" + (p ? " set" : "");
+    document.querySelectorAll(".abtn[data-side=" + side + "]").forEach((b) => {
+      const armed = p && b.dataset.token === p.token;
+      b.classList.toggle("armed", !!armed);
+      let badge = b.querySelector(".n");
+      if (armed && p.count > 1) {
+        if (!badge) { badge = document.createElement("span"); badge.className = "n"; b.appendChild(badge); }
+        badge.textContent = "×" + p.count;
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  }
+  const any = pending.left || pending.right;
+  $("commit").className = any ? "" : "idle";
+  $("commit-sub").textContent = any
+    ? "L:" + shortTok(pending.left) + "  +  R:" + shortTok(pending.right)
+    : "nothing queued";
+}
+function render(st) {
+  STATE = st;
+  if (st.task_text) $("v-task").textContent = st.task_text;
+  $("saved").textContent = st.rollouts_saved ? "saved " + st.rollouts_saved : "";
+
+  const rec = $("rec-chip");
+  if (st.recording) {
+    rec.textContent = "● " + (st.rollout || "REC") + " · " + st.steps + " steps";
+    rec.className = "on";
+  } else {
+    rec.textContent = "";
+    rec.className = "off";
+  }
+
+  const grip = st.gripper_closed || {};
+  const hold = st.holding || {};
+  for (const s of ["l", "r"]) {
+    const side = s === "l" ? "left" : "right";
+    const chip = $("hold-" + s);
+    if (hold[side]) { chip.textContent = "HOLDING"; chip.className = "hold-chip yes"; }
+    else if (grip[side]) { chip.textContent = "closed (empty)"; chip.className = "hold-chip"; }
+    else { chip.textContent = "hand empty"; chip.className = "hold-chip"; }
+  }
+
+  $("banner-gap").classList.toggle("on", !!st.gap_warn);
+  $("banner-done").classList.toggle("on", !!st.recording && !!st.task_done);
+  $("btn-start").classList.toggle("on", !!st.recording);
+  $("btn-stop").classList.toggle("ready", !!st.can_stop);
+}
+/* ---------------- help overlay ---------------- */
+function helpOpen() { return $("help").classList.contains("on"); }
+function toggleHelp(force) {
+  const on = force != null ? force : !helpOpen();
+  $("help").classList.toggle("on", on);
+}
+
+/* ---------------- clicks ---------------- */
+document.querySelectorAll(".abtn").forEach((b) => {
+  b.addEventListener("click", () => queueAction(b.dataset.side, b.dataset.token));
+});
+$("q-left").addEventListener("click", () => clearQueue("left"));
+$("q-right").addEventListener("click", () => clearQueue("right"));
+$("commit").addEventListener("click", commit);
+$("btn-start").addEventListener("click", () => post("/api/start", {}));
+$("btn-stop").addEventListener("click", () => post("/api/stop", {}));
+$("btn-cancel").addEventListener("click", () => {
+  const now = Date.now();
+  const btn = $("btn-cancel");
+  if (now - cancelArmed < 3000) {
+    cancelArmed = 0;
+    btn.classList.remove("armed2");
+    btn.textContent = "CANCEL (discard + home)";
+    post("/api/cancel", {});
+  } else {
+    cancelArmed = now;
+    btn.classList.add("armed2");
+    btn.textContent = "CLICK AGAIN TO DISCARD";
+    setTimeout(() => {
+      if (Date.now() - cancelArmed >= 2900) {
+        btn.classList.remove("armed2");
+        btn.textContent = "CANCEL (discard + home)";
+      }
+    }, 3100);
+  }
+});
+
+/* ---------------- keyboard (equivalent to the buttons) ---------------- */
+document.addEventListener("keydown", (ev) => {
+  // Shift/Ctrl are arm actions here, so they must be read before the guard
+  // below drops modified keys (a real Ctrl+R still reaches the browser).
+  if (!ev.repeat && SIDE_KEYS[ev.code]) {
+    ev.preventDefault();
+    const [side, token] = SIDE_KEYS[ev.code];
+    queueAction(side, token);
+    return;
+  }
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.repeat) return;
+  const key = ev.key.toLowerCase();
+
+  if (ev.key === "?" || (key === "/" && ev.shiftKey)) { ev.preventDefault(); toggleHelp(); return; }
+  if (key === "escape") {
+    ev.preventDefault();
+    digit = 0; cancelArmed = 0;
+    clearQueue(); toggleHelp(false);
+    show("cleared: queued actions, digit, pending cancel");
+    return;
+  }
+  if (helpOpen()) { ev.preventDefault(); return; }
+
+  if (key.length === 1 && key >= "1" && key <= "9") {
+    ev.preventDefault();
+    digit = parseInt(key, 10);
+    show("digit " + digit + " armed: the next move key queues ×" + digit);
+    return;
+  }
+  const put = (side, token) => {
+    ev.preventDefault();
+    const n = NO_REPEAT[token] ? 1 : (digit || 1);
+    digit = 0;
+    queueAction(side, token, n);
+  };
+  if (LEFT_KEYS[key])  { put("left",  LEFT_KEYS[key]);  return; }
+  if (RIGHT_KEYS[key]) { put("right", RIGHT_KEYS[key]); return; }
+
+  if (key === "enter") { ev.preventDefault(); commit(); return; }
+  if (key === "backspace") { ev.preventDefault(); clearQueue(); show("queued actions cleared"); return; }
+  if (key === "p") {
+    ev.preventDefault();
+    post(STATE.recording ? "/api/stop" : "/api/start", {});
+    return;
+  }
+  if (key === "c") { ev.preventDefault(); $("btn-cancel").click(); return; }
+}, true);
+
+document.addEventListener("click", (ev) => {
+  if (helpOpen() && ev.target === $("help")) toggleHelp(false);
+  document.body.focus();
+});
+
+/* ---------------- boot ---------------- */
+let lastMessage = "";
+function poll() {
+  fetch("/api/state", { cache: "no-store" })
+    .then((r) => r.json())
+    .then((st) => {
+      render(st);
+      // Show a backend message only when it changes, so the result line is not
+      // rewritten on every poll.
+      if (st.message && st.message !== lastMessage && Date.now() >= msgHoldUntil) {
+        lastMessage = st.message;
+        show(st.message, false);
+      }
+    })
+    .catch(() => { /* server restarting: keep the last frame and retry */ });
+}
+document.body.focus();
+renderDeck();
+poll();
+setInterval(poll, 500);
+</script>
+</body>
+</html>

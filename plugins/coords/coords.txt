@@ -1,0 +1,42 @@
+Controller-prompt fragments owned by the coords plugin (see plugins/prompt_text.py for
+the [section] convention). These two blocks REPLACE the controller prompt's
+DIRECTION:/REMARK: sections in memory when plugins.coords is enabled; the source
+prompts/controller.txt is never modified. {mem_text_rules} is a template placeholder
+the controller agent fills later -- it must stay verbatim.
+
+[direction]
+DIRECTION:
+Use the robot's right-handed base coordinate system. Choose the single atomic move
+that best reduces the largest remaining 3D error between the gripper or held object
+and the current stage goal:
+- MV_FWD  -> move along +x
+- MV_BACK -> move along -x
+- MV_RIGHT -> move along +y
+- MV_LEFT  -> move along -y
+- MV_UP   -> move along +z
+- MV_DOWN -> move along -z
+
+Camera-to-axis calibration for the current real-robot views:
+- lower in the image -> +x (MV_FWD) ; upper -> -x (MV_BACK)
+- right in the image -> +y (MV_RIGHT) ; left -> -y (MV_LEFT)
+- TARGET/AFFORD cropped, hidden by the gripper, or too large in wrist -> -x (MV_BACK)
+- x (near/far) overshoots from a high viewpoint: take ONE small step, and when far
+  above the table MV_DOWN (-z) first rather than repeating +x to chase a far-looking target.
+
+Use image evidence only to infer the needed robot-axis displacement. In the JSON
+reasoning, state the displacement in axis terms such as "+x and -y", not as image
+edge phrases.
+
+[remark]
+REMARK:
+{mem_text_rules}
+- Prefer x/y alignment before z descent for grasping or placing.
+- Depth beats appearance: if wrist depth is occluded or overshot, use -x (MV_BACK) even after +x (MV_FWD).
+- Use MV_DOWN (-z) only when the gripper is visually aligned enough to approach, or when placing a held object onto the destination.
+- If low near the table but not aligned, use MV_UP (+z) before moving in x/y.
+- After grasping, MV_UP (+z) clear of the table BEFORE any x/y move.
+- For LIFT, repeat MV_UP (+z) until a clear gap shows under the object; one MV_UP is not enough.
+- Edge/corner alignment is not a grasp; satisfy the GRIPPER criteria before closing.
+- NEVER oscillate: never pick a move opposite to the newest recent move
+  (MV_LEFT with MV_RIGHT; MV_FWD with MV_BACK).
+- DONE only when "DONE WHEN" is already visible in the images.

@@ -1,0 +1,5 @@
+Controller-prompt fragments owned by the action-chunk plugin (see plugins/prompt_text.py
+for the [section] convention; {placeholders} are filled by plugin.py via str.replace).
+
+[plan]
+ACTION PLAN -- only when WRIST: NO (TARGET far): plan your next {step_num} moves as `PLAN: M1, M2, ...` (MV_ tokens only) and set decision to M1. Choose each move from the height and step size so the plan does not overshoot (e.g. never plan more MV_DOWN than the height above the table allows). When WRIST: YES, decide a single move.

@@ -1,0 +1,39 @@
+# Atomic-motion primitives for the AgileX/Songling Piper 6-DoF arm (left arm rig).
+#
+# Same schema as configs/primitives_franka.yaml. step_m / yaw_step_rad are
+# the metric distance / angle one MV_* / ROTATE_* step moves the end effector. The
+# Piper runs CARTESIAN: MV_* are straight translations and the Piper node's MOVE P /
+# joint stream does the IK.
+step_m: 0.02
+yaw_step_rad: 0.15
+
+# ----- Token -> direction mapping ----------------------------------------------
+# MV_* are unit direction vectors [x, y, z]; ROTATE_* are yaw signs about base +Z.
+# With motion_frame: base (robot_piper.yaml, the DEFAULT AgentView-centric setup) they
+# are raw base-frame directions, calibrated near the begin pose: verify signs on the
+# arm -- teleop with fine steps, tap each key once; MV_FWD should drive the gripper
+# toward the far field. Flip a sign here if mirrored, and re-check that is_ego (the
+# PROMPT half: image -> token) still agrees, else FWD/BACK reverses on the arm.
+# With motion_frame: wrist (OPTIONAL) the same vectors are interpreted in each arm's
+# HEADING frame: +X = along wherever that gripper points (horizontal), +Y = the
+# heading's left, +Z = world up. MV_FWD then follows the arm and the wrist view's
+# directions are exact at any start pose, on BOTH mirrored arms.
+atomic_primitives:
+  # FWD/BACK corrected against the 0704 banana rollout: base +X drives the gripper
+  # toward the far field (where forward / top-of-wrist-image targets sit), so MV_FWD is
+  # base +X. This agrees with is_ego (prompt: image top -> MV_FWD), so "MV_FWD" both
+  # names forward in the prompt AND moves the arm there. (An earlier -X guess reversed
+  # FWD/BACK on the real arm -- MV_FWD drove away from top-of-image targets.)
+  MV_FWD: [1.0, 0.0, 0.0]
+  MV_BACK: [-1.0, 0.0, 0.0]
+  # Lateral in the base frame. UNVERIFIED -- flip if left/right is mirrored on the arm.
+  MV_LEFT: [0.0, 1.0, 0.0]
+  MV_RIGHT: [0.0, -1.0, 0.0]
+  MV_UP: [0.0, 0.0, 1.0]
+  MV_DOWN: [0.0, 0.0, -1.0]
+  # Base-Z gripper yaw. The rotation tool is disabled on the Piper, so ROTATE_* is never
+  # offered to the VLM -- these are used only by the teleop Z/X keys -- but the sign
+  # entries are REQUIRED at controller construction (yaw_signs). Verify the CW/CCW sense
+  # in the wrist image (the eye-in-hand camera looks down, mirroring the base +Z sense).
+  ROTATE_CW: 1.0
+  ROTATE_CCW: -1.0

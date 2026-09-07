@@ -1,0 +1,8 @@
+Controller-prompt fragments owned by the MCQ answer-protocol plugin (see
+plugins/prompt_text.py for the [section] convention; {options} is filled by plugin.py via
+str.replace -- str.format is never used, so the literal JSON braces below are safe).
+
+[output_contract]
+Choose the single best action by its letter:
+{options}
+Return JSON only: {"decision":"LETTER","reasoning":"one visual sentence"}

@@ -1,0 +1,79 @@
+.venv
+data/
+models/*
+!models/chat_templates/
+!models/README.md
+rollouts/
+__pycache__/
+*.py[cod]
+
+# Local secrets (SSH passwords / API keys) — never commit any env file.
+# The tracked template is configs/secrets.env.example.
+configs/*.env
+!configs/secrets.env.example
+.secrets/
+
+.ai/agent_todo/
+.ai/brainstorm/
+.ai/plan/
+
+# Download cache for the stock IsaacLab Panda layer that
+# assets/robolab_franka/panda_short_finger.usda is generated from. Re-fetched on demand by
+# make_short_finger_asset.py; the generated asset itself IS committed.
+assets/robolab_franka/.cache/
+.ai/paper/
+.ruff_cache/
+.vscode/
+# LIBERO's own config: machine-specific absolute paths, written by its installer.
+.libero/
+
+# ---- Lab-internal content: lives on lab machines only, never in the repo ----
+# (Working files for the lab; a fresh clone needs none of them. Site identity
+# comes from the tracked configs/site/*.example templates.)
+.ai/
+rebuttal/
+experiments/
+baselines/
+docs/internal/
+scripts/connect/
+scripts/trajectory/webui/
+scripts/test/test_hosted_apis.py
+scripts/test/test_remote_gemma.py
+scripts/test/*.png
+scripts/robolab/gen_all_tmux.sh
+scripts/robolab/gen_batch.sh
+scripts/robolab/prepare_lf_dataset.sh
+scripts/trajectory/real2sim/maniskill/build_viz.py
+scripts/trajectory/real2sim/maniskill/gen_blockpap_follow_wood.sh
+scripts/trajectory/upload_data_to_hf.py
+scripts/piper/mix_swap_wrapper.py
+prompts/v0/
+prompts/v1/
+prompts/v2/
+configs/site/franka.yaml
+configs/site/piper_arms.yaml
+configs/backends/
+configs/experiments/
+release/leakcheck.internal-patterns
+release/public-exclude.txt
+release/export_public.sh
+run_real_mvtoken_franka.sh
+run_real_mvtoken_piper.sh
+gumi/web_teleop.sh
+scripts/wait_vlm.sh
+release/
+
+# mvtoken training pipeline (see train/README.md)
+# training sets: downloaded releases and locally converted ones. Large, reproducible.
+train/data/
+# training runs: checkpoints, adapters, trainer logs. Large, reproducible. No trailing
+# slash, for the same reason as third_party/LlamaFactory below: with one, the pattern
+# matches only a directory and a symlink to a bigger disk would be committed.
+train/saves
+# training logs
+train/*.log
+# upstream LLaMA-Factory: a clone, or a symlink to one elsewhere. No trailing slash -
+# with one, the pattern matches only the directory and a symlink would be committed.
+third_party/LlamaFactory
+third_party/.uv-cache
+third_party/.cc-shim

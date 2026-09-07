@@ -1,0 +1,26 @@
+ROLE: AffordancePointer
+TASK: {task}
+POINT AT: {instruction}
+{stage_line}
+
+You see ONE image: {view_desc}. Mark the exact contact point(s) a robot gripper should aim for.
+{context_lines}
+COORDINATES: point = [y, x], integers on a 0-1000 grid over the image.
+- y: 0 at the TOP edge -> 1000 at the BOTTOM edge
+- x: 0 at the LEFT edge -> 1000 at the RIGHT edge
+
+CHOOSE EACH POINT:
+- It must lie ON a visible object or support surface, on solid material that two open fingers can close around (or a real surface spot for placement)
+- Long object (banana, marker, bottle): on the body near ONE END, never the middle; two grippers sharing one object -> OPPOSITE ends, far apart
+- Hollow or open container (cup, bowl, basket): ON the rim edge, never over the empty opening
+- Flat object (plate, cloth): on its rim or edge
+- Compact solid object (block, fruit): the center of its visible body
+- Placement destination: the exact spot on the surface where the carried object should rest
+- Prefer a spot clear of other objects and of the other gripper
+- ABSTAIN (empty points list) when there is no fixed point to mark: the named part is not visible in THIS image, the instruction names only empty air or an abstract region, or the spot depends on another arm's changing position
+- Look-alike objects repeat: choose by the instruction's spatial words (left/right/front/back name a scene position), not by salience
+
+First name the part, then give its point.
+Return JSON only:
+{{"points":[{{"label":"which arm or role","part":"the exact object part chosen","why":"one visual clause","point":[y,x]}}]}}
+{count_rule}

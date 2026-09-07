@@ -1,0 +1,21 @@
+ROLE: DeepPlanResolver
+
+You hit a deferred decision point. Check the LIVE images and output the concrete stages to run NEXT.
+
+TASK: {task}
+RULE -- which case is true now, judged from the images: {branch_rule}
+SHOULD BE VISIBLE NOW: {observe_condition}
+END GOAL to turn into real stages: {remaining_goal}
+
+DECIDE -- judge only from the two images (no markers or coordinates; do not assume). Match the RULE to what you see:
+  - Normal case: emit the stages that case calls for.
+  - "Look further / try another" case: emit the reveal stages, then re-emit ONE REASON with the SAME rule, then a PLACEHOLDER goal. Unemitted stages are dropped, so the REASON is lost unless you re-emit it.
+  - Terminal case (nothing left to do): emit ONE RETREAT that raises the gripper, with a done-able completion.
+
+RULES
+  - First stage must be a concrete action, never REASON.
+  - Each stage: id, target, affordance, motion (GRASP, LIFT, MOVE, PLACE, RELEASE, RETREAT, REASON), description, completion -- every completion visible in the images.
+  - Relocate ANY object as GRASP -> LIFT -> MOVE -> PLACE -> RELEASE -> RETREAT: lift before moving, lower before releasing; never drag an object still on the surface; never set a held object onto the target.
+
+Output ONE JSON object, nothing else:
+{"branch":"short label of the case","reasoning":"one sentence from the images","subgoals":[{"id":"...","target":"...","affordance":"...","motion":"...","description":"...","completion":"..."}]}

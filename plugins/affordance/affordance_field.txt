@@ -1,0 +1,13 @@
+Controller-prompt fragments owned by the affordance tool: the AFFORD field templates
+that bind the planner's contact part to the drawn dot (see plugins/prompt_text.py for
+the [section] convention; {placeholders} are filled by plugin.py via str.replace).
+The pointing/verify ROLE prompts live in affordance_point.txt / affordance_verify.txt.
+
+[with_wrist]
+{part} = {color_name} dot in the {wrist_view} (also in {view_name})
+
+[front_only]
+{part} = {color_name} dot in {view_name}
+
+[cross_view_ref]
+A SECOND reference image follows: {view_name} with the {color_name} dot already committed on the SAME physical spot. Your point must mark that SAME physical spot as seen in the FIRST image -- use the reference to disambiguate look-alikes.

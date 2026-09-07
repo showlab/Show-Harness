@@ -1,0 +1,20 @@
+step_m: 0.02
+yaw_step_rad: 0.15
+osc_translation_output_max_m: 0.05
+osc_rotation_output_max_rad: 0.5
+
+atomic_primitives:
+  MV_FWD: [1.0, 0.0, 0.0]
+  MV_BACK: [-1.0, 0.0, 0.0]
+  # Real-robot base frame: the robot's LEFT is base -Y and RIGHT is base +Y
+  # (left/right were swapped vs the original sim assumption).
+  MV_LEFT: [0.0, -1.0, 0.0]
+  MV_RIGHT: [0.0, 1.0, 0.0]
+  MV_UP: [0.0, 0.0, 1.0]
+  MV_DOWN: [0.0, 0.0, -1.0]
+  # Signs calibrated so the token matches the turn seen in the WRIST view (the eye-in-hand
+  # camera looks down, so its apparent sense is mirrored vs the base +Z right-hand rule).
+  # Verified from a real rollout: ROTATE_CW must turn the gripper clockwise as the VLM sees
+  # it in the wrist image. (Was CW:-1/CCW:+1, which came out reversed on hardware.)
+  ROTATE_CW: 1.0
+  ROTATE_CCW: -1.0

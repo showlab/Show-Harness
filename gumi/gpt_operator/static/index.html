@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Show-Harness · GPT Operator</title>
+<style>
+  :root {
+    --bg:#090d13; --panel:#111824; --panel2:#0d141e; --line:#243247;
+    --text:#ecf2fa; --dim:#8ea0b6; --cyan:#59d9ff; --green:#51dfa0;
+    --amber:#ffc766; --red:#ff6b7a; --blue:#6d8cff; --shadow:0 16px 48px #0008;
+  }
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+  body{font:13px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  button,input{font:inherit} button{cursor:pointer}
+  #app{min-height:100vh;display:flex;flex-direction:column}
+  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:16px;padding:12px 18px;
+    background:#0c121beF;border-bottom:1px solid var(--line);backdrop-filter:blur(18px)}
+  .brand{display:flex;align-items:center;gap:10px;min-width:215px}.mark{width:30px;height:30px;border-radius:9px;
+    display:grid;place-items:center;background:linear-gradient(135deg,var(--cyan),var(--blue));color:#071019;font-weight:900}
+  .brand b{font-size:15px;letter-spacing:.02em}.brand small{display:block;color:var(--dim);font-size:10px;letter-spacing:.15em}
+  #statusText{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim);margin-right:7px}
+  .dot.run{background:var(--green);box-shadow:0 0 12px var(--green)}.dot.busy{background:var(--amber);box-shadow:0 0 12px var(--amber)}
+  .controls{display:flex;gap:7px}.btn{border:1px solid var(--line);color:var(--text);background:#162131;
+    padding:8px 13px;border-radius:8px;font-weight:700}.btn:hover{border-color:#4b6381}.btn.primary{background:var(--green);color:#07140e;border-color:transparent}
+  .btn.warn{background:#2c2213;color:var(--amber)}.btn.danger{background:#2a151a;color:#ff9ba5}.btn:disabled{opacity:.45;cursor:not-allowed}
+  main{padding:14px 18px 24px;display:grid;gap:14px}
+  .metrics{display:grid;grid-template-columns:repeat(8,minmax(95px,1fr));gap:8px}
+  .metric{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0}
+  .metric label{display:block;color:var(--dim);font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+  .metric strong{display:block;font-size:17px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .metric .ok{color:var(--green)}.metric .hot{color:var(--amber)}.metric .bad{color:var(--red)}
+  .section{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .sectionHead{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+  .sectionHead h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin:0;color:#c9d6e5}.sectionHead span{color:var(--dim)}
+  .sectionHead .spacer{flex:1}.tiny{padding:5px 9px;font-size:11px}
+  #views{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);min-height:285px}
+  .view{position:relative;background:#030507;min-height:285px;display:grid;place-items:center;overflow:hidden}
+  .view img{width:100%;height:100%;max-height:52vh;object-fit:contain}.view .tag{position:absolute;left:9px;top:9px;
+    padding:4px 8px;border-radius:6px;background:#050910c9;border:1px solid #34445a;color:#dce8f7;font-size:10px;letter-spacing:.13em}
+  .split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);gap:14px}
+  .decision{padding:16px;display:grid;grid-template-columns:130px 1fr;gap:12px 18px}.phase{font-size:22px;font-weight:800;color:var(--cyan);text-transform:uppercase}
+  .confidence{font-size:28px;font-weight:800}.confidence.good{color:var(--green)}.confidence.mid{color:var(--amber)}.confidence.low{color:var(--red)}
+  .label{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}.value{font-size:15px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}.action{border:1px solid #354965;background:#101d2c;border-radius:9px;padding:8px 12px;min-width:150px}
+  .action b{font-size:17px;color:var(--amber)}.action.idle b{color:var(--dim)}
+  .error{margin:0 16px 16px;padding:10px 12px;border:1px solid #7c303b;background:#291419;border-radius:8px;color:#ffabb4;display:none}.error.on{display:block}
+  .taskbox{padding:14px;display:flex;gap:8px}.taskbox input{flex:1;min-width:0;background:#090e16;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 11px}
+  pre{margin:0;padding:14px;max-height:270px;overflow:auto;background:#090e16;color:#b8c6d8;font:11px/1.5 "SFMono-Regular",Consolas,monospace;white-space:pre-wrap}
+  .timeline{overflow:auto;max-height:330px}table{width:100%;border-collapse:collapse}th,td{padding:8px 10px;border-bottom:1px solid #202d40;text-align:left;vertical-align:top}
+  th{position:sticky;top:0;background:#0d141e;color:var(--dim);font-size:9px;letter-spacing:.13em;text-transform:uppercase}td code{color:var(--amber)}
+  .foot{color:var(--dim);padding:9px 12px;font-size:11px;border-top:1px solid var(--line)}a{color:var(--cyan)}
+  dialog{color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(900px,90vw);box-shadow:var(--shadow)}dialog::backdrop{background:#000b}
+  @media(max-width:1100px){.metrics{grid-template-columns:repeat(4,1fr)}.split{grid-template-columns:1fr}#views{min-height:230px}.view{min-height:230px}}
+  @media(max-width:700px){header{flex-wrap:wrap}.brand{min-width:0}.controls{width:100%;overflow:auto}.metrics{grid-template-columns:repeat(2,1fr)}#views{grid-template-columns:1fr}.view{min-height:260px}.decision{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand"><div class="mark">G</div><div><b>GPT OPERATOR</b><small>AGENTROBOT VISION LOOP</small></div></div>
+  <div id="statusText"><span id="runDot" class="dot"></span><span id="statusValue">connecting…</span></div>
+  <div class="controls">
+    <button class="btn primary" id="run">▶ Run</button>
+    <button class="btn" id="pause">Ⅱ Pause</button>
+    <button class="btn warn" id="once">◇ Step once</button>
+    <button class="btn" id="record">● Start REC</button>
+    <button class="btn" id="save">■ Stop &amp; Save</button>
+    <button class="btn danger" id="cancel">Cancel rollout</button>
+  </div>
+</header>
+<main>
+  <div class="metrics">
+    <div class="metric"><label>Operator</label><strong id="m-mode">-</strong></div>
+    <div class="metric"><label>Model</label><strong id="m-model">-</strong></div>
+    <div class="metric"><label>Mode</label><strong id="m-rig">-</strong></div>
+    <div class="metric"><label>GPT latency</label><strong id="m-latency">-</strong></div>
+    <div class="metric"><label>Confidence</label><strong id="m-conf">-</strong></div>
+    <div class="metric"><label>Cycle / executed</label><strong id="m-cycle">-</strong></div>
+    <div class="metric"><label>Recording</label><strong id="m-rec">-</strong></div>
+    <div class="metric"><label>Task gate</label><strong id="m-gate">-</strong></div>
+  </div>
+
+  <section class="section">
+    <div class="sectionHead"><h2>Camera views</h2><span id="viewCaption">live target snapshots</span><span class="spacer"></span>
+      <button class="btn tiny" id="viewMode">Show last GPT input</button><a id="targetLink" target="_blank" rel="noopener">Open teleop UI ↗</a></div>
+    <div id="views"></div>
+  </section>
+
+  <div class="split">
+    <section class="section">
+      <div class="sectionHead"><h2>Latest GPT decision</h2><span id="decisionTime"></span><span class="spacer"></span><button class="btn tiny" id="showPrompt">Prompt</button></div>
+      <div class="decision">
+        <div><div class="label">Phase</div><div class="phase" id="phase">—</div><div class="label" style="margin-top:13px">Confidence</div><div class="confidence" id="confidence">—</div></div>
+        <div><div class="label">Visible evidence</div><div class="value" id="evidence">No GPT decision yet.</div>
+          <div class="label" style="margin-top:13px">Next goal</div><div class="value" id="goal">—</div>
+          <div class="label" style="margin-top:13px">Atomic action</div><div class="actions" id="actions"></div></div>
+      </div>
+      <div class="error" id="error"></div>
+    </section>
+
+    <section class="section">
+      <div class="sectionHead"><h2>Task &amp; target state</h2></div>
+      <div class="taskbox"><input id="task" placeholder="Task text (editable only when not recording)"><button class="btn" id="setTask">Set task</button></div>
+      <pre id="state">{}</pre>
+    </section>
+  </div>
+
+  <section class="section">
+    <div class="sectionHead"><h2>Decision trace</h2><span>newest first · exact input frames and JSONL are persisted</span></div>
+    <div class="timeline"><table><thead><tr><th>#</th><th>Outcome</th><th>Phase</th><th>Actions</th><th>Confidence</th><th>Latency</th><th>Evidence</th></tr></thead><tbody id="events"></tbody></table></div>
+    <div class="foot">Trace directory: <code id="trace">—</code> · Prompt hash: <code id="promptHash">—</code></div>
+  </section>
+</main>
+</div>
+<dialog id="promptDialog"><div class="sectionHead"><h2>Active GPT operator prompt</h2><span class="spacer"></span><button class="btn tiny" id="closePrompt">Close</button></div><pre id="promptText">loading…</pre></dialog>
+<script>
+"use strict";
+const $=id=>document.getElementById(id); let STATUS={}; let live=true; let viewKey="";
+const esc=v=>String(v==null?"—":v);
+async function post(path,body){const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});const d=await r.json().catch(()=>({ok:false,message:"bad response"}));if(!r.ok||!d.ok)throw new Error(d.message||("HTTP "+r.status));return d}
+function actionText(d){if(!d||!d.left||!d.right)return "—";return ["L:"+d.left.action+(d.left.repeat>1?"×"+d.left.repeat:""),"R:"+d.right.action+(d.right.repeat>1?"×"+d.right.repeat:"")].join(" · ")}
+function ensureViews(names){const key=names.join("|");if(key===viewKey)return;viewKey=key;const root=$("views");root.innerHTML="";root.style.gridTemplateColumns="repeat("+Math.max(1,names.length)+",1fr)";for(const name of names){const card=document.createElement("div");card.className="view";const tag=document.createElement("span");tag.className="tag";tag.textContent=name.replace("agentview","FRONT · BOTH ARMS").replace("wrist_left","LEFT WRIST").replace("wrist_right","RIGHT WRIST").replace("wrist","WRIST");const img=document.createElement("img");img.id="view-"+name;img.alt=name;card.append(tag,img);root.append(card)}}
+function refreshImages(){const names=(STATUS.views&&STATUS.views.length)?STATUS.views:((STATUS.target_state||{}).dual_arm?["agentview","wrist_left","wrist_right"]:["agentview","wrist"]);ensureViews(names);const stamp=Date.now();for(const n of names){const img=$("view-"+n);if(!img)continue;img.src=(live?"/api/live/":"/api/frame/")+n+"?t="+stamp}}
+function render(s){STATUS=s;const st=s.target_state||{},d=s.last_decision||null,conf=d?d.confidence:null;
+  $("statusValue").textContent=s.status||"—";$("runDot").className="dot "+(s.busy?"busy":s.mode==="continuous"?"run":"");
+  $("m-mode").textContent=s.busy?"THINKING":s.mode.toUpperCase();$("m-mode").className=s.mode==="continuous"?"ok":s.busy?"hot":"";
+  $("m-model").textContent=s.model||"—";$("m-rig").textContent=st.dual_arm?"DUAL ARM":"SINGLE ARM";$("m-latency").textContent=s.last_latency_s!=null?s.last_latency_s.toFixed(2)+" s":"—";
+  $("m-conf").textContent=conf!=null?Math.round(conf*100)+"%":"—";$("m-cycle").textContent=s.cycle+" / "+s.executed_steps;
+  $("m-rec").textContent=st.recording?(st.rollout||"REC"):"IDLE";$("m-rec").className=st.recording?"bad":"";$("m-gate").textContent=st.can_stop?"CAN STOP":st.task_done?"DONE / GATED":"IN PROGRESS";$("m-gate").className=st.can_stop?"ok":"";
+  $("phase").textContent=d?d.phase:"—";$("evidence").textContent=d?d.evidence:"No GPT decision yet.";$("goal").textContent=d?d.next_goal:"—";
+  const c=$("confidence");c.textContent=conf!=null?Math.round(conf*100)+"%":"—";c.className="confidence "+(conf==null?"":conf>=.75?"good":conf>=s.confidence_threshold?"mid":"low");
+  const acts=$("actions");acts.innerHTML="";if(d){for(const side of ["left","right"]){if(!st.dual_arm&&side==="right")continue;const a=d[side],box=document.createElement("div");box.className="action "+(a.action==="STILL"?"idle":"");const lab=document.createElement("div");lab.className="label";lab.textContent=side+" arm";const val=document.createElement("b");val.textContent=a.action+(a.repeat>1?" ×"+a.repeat:"");box.append(lab,val);acts.append(box)}}
+  const err=$("error");err.textContent=s.last_error||"";err.className="error "+(s.last_error?"on":"");
+  if(document.activeElement!==$("task"))$("task").value=st.task_text||"";$("state").textContent=JSON.stringify(st,null,2);$("targetLink").href=s.target_ui_url||"#";
+  $("trace").textContent=s.trace_dir||"—";$("promptHash").textContent=s.prompt_sha256||"—";
+  const rows=$("events");rows.innerHTML="";for(const e of (s.events||[])){const tr=document.createElement("tr"),dd=e.decision||{};for(const value of [e.cycle,e.outcome||e.kind,dd.phase||"—",actionText(dd),dd.confidence!=null?Math.round(dd.confidence*100)+"%":"—",e.latency_s!=null?e.latency_s+"s":"—",dd.evidence||e.message||"—"]){const td=document.createElement("td");td.textContent=esc(value);tr.append(td)}rows.append(tr)}
+  refreshImages();$("run").disabled=s.mode==="continuous";$("pause").disabled=s.mode!=="continuous"&&!s.busy;
+}
+async function poll(){try{const r=await fetch("/api/status",{cache:"no-store"});render(await r.json())}catch(e){$("statusValue").textContent="dashboard connection error: "+e}}
+function bind(id,path,body){$(id).onclick=async()=>{try{await post(path,typeof body==="function"?body():body);await poll()}catch(e){alert(e.message)}}}
+bind("run","/api/run");bind("pause","/api/pause");bind("once","/api/step");bind("record","/api/record/start");bind("save","/api/record/stop");
+$("cancel").onclick=async()=>{if(!confirm("Discard the active rollout and home the robot?"))return;try{await post("/api/cancel");await poll()}catch(e){alert(e.message)}};
+$("setTask").onclick=async()=>{try{await post("/api/task",{task:$("task").value.trim()});await poll()}catch(e){alert(e.message)}};
+$("viewMode").onclick=()=>{live=!live;$("viewMode").textContent=live?"Show last GPT input":"Show live views";$("viewCaption").textContent=live?"live target snapshots":"exact images from the latest GPT decision";refreshImages()};
+$("showPrompt").onclick=async()=>{const d=await (await fetch("/api/prompt")).json();$("promptText").textContent=d.prompt||"";$("promptDialog").showModal()};$("closePrompt").onclick=()=>$("promptDialog").close();
+poll();setInterval(poll,650);setInterval(refreshImages,500);
+</script>
+</body>
+</html>

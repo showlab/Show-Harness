@@ -1,0 +1,62 @@
+# mvtoken LoRA - Qwen3.5-2B on the released ShowHarness sim split (RoboLab 130 eps +
+# ManiSkill 100 eps, mixed; both simulators share the 2 cm translation quantum, so they
+# train together without rescaling). Hyperparameters are the template's, unchanged.
+#   SPLITS=sim bash train/scripts/download_dataset.sh
+#   CONFIG=train/configs/qwen3_5_2b_sim.yaml GPU=0 bash train/scripts/train.sh
+
+### model
+model_name_or_path: Qwen/Qwen3.5-2B    # local weights: pass MODEL_PATH=/path/to/weights
+image_max_pixels: 65536    # 256x256, matches the stored rollout resolution
+trust_remote_code: true
+flash_attn: fa2
+
+### method
+stage: sft
+do_train: true
+finetuning_type: lora
+freeze_vision_tower: true            # language side only
+freeze_multi_modal_projector: false
+
+### LoRA
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target: all
+
+### dataset
+# the name used by register_dataset.py (see LF's data/dataset_info.json)
+dataset: showharness_sim
+template: qwen3_5_nothink
+cutoff_len: 2048
+overwrite_cache: true      # LF's fingerprint only hashes path strings, so overwritten images go unnoticed
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+### output
+output_dir: saves/qwen3.5-2b/robot/showharness_sim    # relative -> train.sh pins it under train/
+logging_steps: 2
+save_steps: 200
+save_total_limit: 5      # ~1GB per checkpoint (adapter + optimizer state); the run makes 64
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: wandb
+# wandb project/entity come from WANDB_PROJECT / WANDB_ENTITY, passed by train.sh.
+# Upstream has no wandb_entity yaml key, and `project` here is transformers' Trackio
+# field, not the wandb project.
+run_name: qwen3.5-2b-robot-showharness-sim
+
+### train
+# 1 GPU: batch 4 x grad_acc 8 = eff_bs 32, the same effective batch and lr curve as the
+# template's 2-GPU 4 x 4 x 2.
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-4
+num_train_epochs: 30.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+ddp_timeout: 180000000
+
+### distributed (ZeRO-2: 2B in bf16 is ~4GB, fits on one GPU; less comm than ZeRO-3)
+deepspeed: examples/deepspeed/ds_z2_config.json

@@ -1,0 +1,168 @@
+# Franka single-arm, fine-tuned mode: a small VLM fine-tuned on GUMI
+# demonstrations emits one action token per step (scripts/run_real_mvtoken.py, planner-
+# free / stage-free). Zero-shot counterpart: robot_franka.yaml.
+#
+# Layering (see robot_franka.yaml for the mechanism): site identity is required
+# from configs/site/; the optional layers carry the lab's LoRA-server registry,
+# internal endpoints, and the active experiment state, and are absent from the
+# public release.
+defaults:
+  - site/franka.yaml
+  - {path: backends/internal.yaml, optional: true}
+  - {path: backends/lab_lora_servers.yaml, optional: true}
+overlays:
+  - {path: experiments/current_franka_ft.yaml, optional: true}
+
+# ----- Task -----------------------------------------------------------------
+# A launcher usually passes --task and overrides this; this value applies when
+# running scripts/run_real_mvtoken.py directly.
+task: "Pick up the banana and place on the plate"
+
+# ----- VLM ------------------------------------------------------------------
+# The released adapters are defined in vlm_backends: below, so the default works as soon
+# as one is served. Use finetuned_local for YOUR own adapter (rename its `model:`).
+# backends/lab_lora_servers.yaml, when present, adds internal endpoints on top.
+vlm_backend: qwen3_5_2b
+
+# ----- Rollout --------------------------------------------------------------
+max_steps: 400
+
+# ----- Plugins ----------------------------------------------------------------
+# The MVTOKEN runner only consults auto_release (and smooth, via the controller);
+# everything below it belongs to the subgoal pipeline in scripts/run_real.py and stays
+# OFF here. They are listed explicitly -- rather than omitted -- so this file
+# shows the same plugin surface as robot_franka.yaml and one can be flipped on
+# for a comparison run without hunting for its name.
+plugins:
+  # --- consulted by the MVTOKEN runner ---
+  auto_release: true   # auto-open the gripper when its closed width < empty_width_m
+  smooth: false        # interpolate each token into smooth_substeps setpoints
+  dagger: true         # live teleop override: take over mid-rollout with the collection keys
+                       # (needs the live-view window -- do NOT combine with --no-show)
+  # --- subgoal-pipeline plugins (scripts/run_real.py); OFF for MVTOKEN ---
+  subgoal: false
+  proprioception: false
+  recovery: false
+  variable_step: false   # coarse step (coarse_step_m) when high (> high_above_table_m) or MV_UP
+  mem_text: false        # put the last mem_text_len moves in the prompt
+  action_chunk: false    # action_chunk_step_num moves per VLM call
+  coords: false
+  mcq: false
+  deepplan: false
+  rotation: false
+  video_ref: false
+  affordance: false
+
+# ----- Plugin settings -----------------------------------------------------------
+# Only read when the matching plugin above is switched on (kept here so enabling
+# one is a single-line edit). Values mirror robot_franka.yaml.
+rotate_step_deg: 40
+action_chunk_step_num: 3
+mem_text_len: 5
+affordance_verify_rounds: 2
+affordance_wrist_track: false
+hd_res: 640
+video_ref_frames: 8
+# video_ref_path: /path/to/demo.mp4
+
+# ----- Models ---------------------------------------------------------------
+vlm:
+  base_url: http://localhost:8000/v1
+
+vlm_backends:
+  # ---- Fine-tuned action policies -----------------------------------------
+  # Serve one with:
+  #   MODEL=<base> FAMILY=<family> LORA=<adapter-name>=<path> bash scripts/serve_vlm.sh
+  # A profile's KEY is the short backend name you select (`vlm_backend:` above or
+  # --vlm-backend); its `model:` is the adapter name the server registered, which
+  # for the released checkpoints is <key>_showharness_ft. Keeping them separate lets
+  # every config name the same backend while pointing at its own weights. See
+  # docs/finetuned.md for the base model and FAMILY each one needs.
+  finetuned_local:
+    # Your own adapter. Rename `model` to whatever you registered.
+    provider: vllm
+    model: your_adapter_name
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_2b:
+    provider: vllm
+    model: qwen3_5_2b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_4b:
+    provider: vllm
+    model: qwen3_5_4b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_9b:
+    provider: vllm
+    model: qwen3_5_9b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  internvl3_5_2b:
+    provider: vllm
+    model: internvl3_5_2b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  gemma4_e4b:
+    provider: vllm
+    model: gemma4_e4b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  # ---- Hosted baselines ------------------------------------------------------
+  # NOT fine-tuned: hosted APIs for the zero-shot planner stack, kept here so one
+  # hardware config can also drive that baseline (scripts/run_real.py) on the same rig.
+  # Hosted profiles so this one hardware config can also drive a subgoal-pipeline
+  # baseline (scripts/run_real.py) on the same rig for comparison -- switch with
+  # `vlm_backend:` above or --vlm-backend. The MVTOKEN policy itself needs a
+  # served action model.
+  chatgpt:
+    provider: openai
+    base_url: https://api.openai.com/v1
+    model: gpt-5.5
+    api_key_env: CHATGPT_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    reasoning_effort: high  # low | medium | high
+  gemini:
+    provider: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-3.1-flash-lite # gemini-flash-latest, gemini-2.5-flash, gemini-3.1-flash-lite (no thinking)
+    api_key_env: GEMINI_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    max_retries: 10
+    reasoning_effort: medium  # low | medium | high
+
+# ----- Safety rules----------------------------------------------------------
+# !! SITE CALIBRATION: capture on YOUR hardware before autonomous runs !!
+empty_width_m: 0.002
+open_width_m: 0.08
+enable_z_floor: true
+# Named Z floors (same mechanism as robot_franka.yaml): z_floor_name picks the
+# active one; override per run with --z-floor-name <name>. Capture new settings
+# with  bash scripts/franka/capture_z_floor.sh --name <name> --write.
+z_floor_name: default # chess_single
+z_floors:
+  default: 0.15   # empty table
+  chess: 0.19
+  chess_single: 0.17
+  franka_gripper: 0.138
+gripper_color: "yellow"
+
+high_above_table_m: 0.10   # = 10 cm
+coarse_step_m: 0.05        # = 5 cm
+fine_step_m: 0.021         # Per-step move distance (m)
+up_step_m: 0.04

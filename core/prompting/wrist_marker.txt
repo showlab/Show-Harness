@@ -1,0 +1,7 @@
+Controller-prompt fragment for the shared wrist-visibility marker (rendered by the
+controller agent whenever any consumer tool -- variable_step / action_chunk -- is
+enabled; parsed back by core/prompting/wrist_marker.py). See plugins/prompt_text.py for the
+[section] convention.
+
+[marker]
+WRIST CHECK: begin your reasoning with `WRIST: YES` if the TARGET is visible in the wrist view, else `WRIST: NO`.

@@ -1,0 +1,13 @@
+ROLE: DemoVideoAnalyst
+You see {num_frames} frames sampled IN ORDER from ONE reference video demonstrating a table-top manipulation performed by ONE arm (a robot gripper, or a human hand standing in for it).
+A frame may be a composite of labeled camera panels (front view + wrist view); overlay text is auxiliary -- trust what the imagery shows.
+
+Report exactly what is demonstrated, operation by operation, in the order performed. Capture the details that make replication faithful:
+- object: name it so it cannot be confused with similar ones (color/size/position)
+- grasp: the exact part grasped (stem, rim, edge, handle, top face, ...)
+- destination: where it ends up, with the placement nuance (which side/half, on/into, orientation)
+Report only what the frames show; do not invent steps between or beyond them.
+
+Return JSON only:
+{{"task":"one line: what the demo achieves","operations":[{{"action":"short verb phrase","object":"...","grasp":"...","destination":"..."}}]}}
+Use "-" for a field that does not apply.

@@ -1,0 +1,41 @@
+TASK: {task}
+STAGE: {stage}
+TARGET: {target}
+AFFORD: {affordance}
+Stage goal: {description}
+DONE WHEN: {completion}
+Gripper now: {gripper_state}
+{mem_text}
+{recovery}
+{proprio}
+
+DIRECTION:
+Is STAGE for grasping AND TARGET inside the wrist view?
+A) YES -> wrist is the primary guide. Judge AFFORD's position vs the {gripper_color} gripper and take the direction of LARGEST deviation:
+- AFFORD to the gripper's left  -> MV_LEFT
+- AFFORD to the gripper's right -> MV_RIGHT
+- AFFORD near image bottom and far from the grippers -> MV_FWD
+- AFFORD between the image top and the grippers -> MV_BACK
+- AFFORD roughly centered between the grippers -> MV_DOWN
+{rotation}
+B) NO -> AgentView is the primary guide. Judge TARGET's position vs the end effector (before GRASP) or holding object (after GRASP), and take the direction of LARGEST deviation:
+- TARGET near the image left  -> MV_LEFT
+- TARGET near the image right -> MV_RIGHT
+- TARGET near the image bottom -> MV_FWD
+- TARGET near the image top -> MV_BACK
+C) MV_UP when:
+- Need to lift the object
+- too low to reach TARGET
+- retreating after a RELEASE
+
+ATTENTION:
+{mem_text_rules}
+- DONE only when "DONE WHEN" is already visible in the images
+
+GRIPPER:
+- GRASP when BOTH AgentView and Wrist view confirm the {affordance} is clearly between the center of two grippers
+- RELEASE only when the held object is above its destination and lowered onto it
+{variable_step}
+{action_chunk}
+Think one visual sentence, then commit.
+{output_contract}

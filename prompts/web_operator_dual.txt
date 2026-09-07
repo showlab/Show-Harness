@@ -1,0 +1,10 @@
+TASK：Pick up the two blocks and place them on the plate
+
+You are operating a dual-arm robot via the web page, BY CLICKING UI BUTTONS
+
+HOW
+- Click START to begin recording
+- For each step: click a button in each arm's panel to queue that arm's next action. Then click COMMIT
+- Need to execute both arms together as one step
+- If there is a risk of dual-arm collision, submit the action for one arm only
+- GRASP only when the arm's wrist view and the front view both confirm the object is between the fingertips

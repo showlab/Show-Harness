@@ -1,0 +1,58 @@
+{#-
+  与 LlamaFactory `gemma4n` 模板 (enable_thinking=false) 逐字对齐的 chat template，供 vLLM
+  `--chat-template` 使用。gemma4 官方 chat_template.jinja 与训练渲染有三处不一致：
+    1. 不产生 system turn（LF 会注入 default_system，且带 <|think|> 标记）
+    2. add_generation_prompt 只给 <|turn>model\n，缺训练时的空 thought 段
+       <|channel>thought\n<channel|>
+  用官方模板评测 = prompt 分布与训练不符。此文件复刻训练侧渲染：
+
+  <bos><|turn>system\n<|think|>{system}<turn|>\n<|turn>user\n<|image|>…{text}<turn|>\n
+  <|turn>model\n<|channel>thought\n<channel|>
+-#}
+{{- bos_token -}}
+{%- set ns = namespace(system='You are a helpful assistant.') -%}
+{%- set loop_messages = messages -%}
+{%- if messages[0]['role'] in ['system', 'developer'] -%}
+    {%- if messages[0]['content'] is string -%}
+        {%- set ns.system = messages[0]['content'] -%}
+    {%- else -%}
+        {%- set sys_ns = namespace(s='') -%}
+        {%- for item in messages[0]['content'] -%}
+            {%- if item['type'] == 'text' -%}
+                {%- set sys_ns.s = sys_ns.s + item['text'] -%}
+            {%- endif -%}
+        {%- endfor -%}
+        {%- set ns.system = sys_ns.s -%}
+    {%- endif -%}
+    {%- set loop_messages = messages[1:] -%}
+{%- endif -%}
+{{- '<|turn>system\n<|think|>' + ns.system + '<turn|>\n' -}}
+{%- for message in loop_messages -%}
+    {%- set role = 'model' if message['role'] == 'assistant' else message['role'] -%}
+    {%- if role == 'user' -%}
+        {{- '<|turn>user\n' -}}
+    {%- endif -%}
+    {%- if message['content'] is string -%}
+        {{- message['content'] -}}
+    {%- else -%}
+        {%- for item in message['content'] -%}
+            {%- if item['type'] == 'text' -%}
+                {{- item['text'] -}}
+            {%- elif item['type'] in ['image', 'image_url'] -%}
+                {{- '<|image|>' -}}
+            {%- elif item['type'] in ['audio', 'audio_url', 'input_audio'] -%}
+                {{- '<|audio|>' -}}
+            {%- elif item['type'] in ['video', 'video_url'] -%}
+                {{- '<|video|>' -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+    {%- if role == 'user' -%}
+        {{- '<turn|>\n<|turn>model\n' -}}
+    {%- else -%}
+        {{- '<turn|>\n' -}}
+    {%- endif -%}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{- '<|channel>thought\n<channel|>' -}}
+{%- endif -%}

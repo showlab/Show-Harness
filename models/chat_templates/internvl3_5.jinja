@@ -1,0 +1,68 @@
+{#-
+  LlamaFactory-aligned chat template for InternVL3.5 (HF format).
+
+  Reproduces the exact prompt that LF's `template: intern_vl` emits during SFT
+  (src/llamafactory/data/template.py:1320 + InternVLPlugin at mm_plugin.py:831).
+  The stock chat_template.jinja shipped with InternVL3_5-*-HF differs in two ways
+  that silently shift the prompt off the training distribution:
+
+    1. It injects NO system message. LF always prepends its `default_system`
+       (the 书生·万象 line below) when the dataset carries no system column —
+       our MVTOKEN data does not, so every training sample had it. ~30 tokens.
+    2. It emits '<IMG_CONTEXT>\n' — a newline after every image. LF substitutes
+       the <image> placeholder in place, so two leading images with text right
+       after them ('<image><image>You are controlling...') produce NO newlines.
+
+  A single <IMG_CONTEXT> per image is correct: transformers' InternVLProcessor
+  expands it to <img>{<IMG_CONTEXT> * image_seq_length * num_patches}</img>
+  (processing_internvl.py:108), exactly like InternVLPlugin.process_messages does.
+  Same for <video> -> 'FrameN: <img>...</img>' lines.
+
+  Requires `--chat-template-content-format openai` on the vLLM side: in "string"
+  mode vLLM builds the prompt itself and joins placeholders with '\n'
+  (chat_utils.py:1355), which would reintroduce mismatch #2 behind this template's back.
+
+  Verified token-for-token against the LF training encoder — see the header of
+  scripts/internvl/eval/start_vllm_server.sh.
+-#}
+{%- set lf_default_system = "你是书生·万象，英文名是InternVL，是由上海人工智能实验室、清华大学及多家合作单位联合开发的多模态大语言模型。" -%}
+{%- if messages and messages[0]['role'] == 'system' -%}
+    {%- set system_message = messages[0]['content'] -%}
+    {%- set loop_messages = messages[1:] -%}
+{%- else -%}
+    {%- set system_message = lf_default_system -%}
+    {%- set loop_messages = messages -%}
+{%- endif -%}
+{#- A system turn may arrive as OpenAI content parts; flatten it to text. -#}
+{%- if system_message is not string -%}
+    {%- set ns = namespace(text='') -%}
+    {%- for part in system_message -%}
+        {%- if part['type'] == 'text' -%}
+            {%- set ns.text = ns.text + part['text'] -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- set system_message = ns.text -%}
+{%- endif -%}
+{%- if system_message -%}
+    {{- '<|im_start|>system\n' + system_message + '<|im_end|>\n' -}}
+{%- endif -%}
+{%- for message in loop_messages -%}
+    {{- '<|im_start|>' + message['role'] + '\n' -}}
+    {%- if message['content'] is string -%}
+        {{- message['content'] -}}
+    {%- else -%}
+        {%- for part in message['content'] -%}
+            {%- if part['type'] == 'image' -%}
+                {{- '<IMG_CONTEXT>' -}}
+            {%- elif part['type'] == 'video' -%}
+                {{- '<video>' -}}
+            {%- elif part['type'] == 'text' -%}
+                {{- part['text'] -}}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+    {{- '<|im_end|>\n' -}}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{- '<|im_start|>assistant\n' -}}
+{%- endif -%}

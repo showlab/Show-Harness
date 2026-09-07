@@ -1,0 +1,20 @@
+[project]
+name = "showharness"
+version = "0.1.0"
+description = "An embodied harness that turns a vision-language model into a robot controller"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["baselines", "experiments", "rebuttal", ".ai"]
+
+[tool.ruff.lint]
+# Correctness-focused: undefined names, unused imports/variables, syntax errors.
+select = ["F", "E9"]
+ignore = ["F841"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

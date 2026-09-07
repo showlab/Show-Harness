@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use Show-Harness in your research, please cite it."
+title: "Show-Harness: Just a VLM Agent Can Play Robots"
+authors:
+  - family-names: "Chen"
+    given-names: "Yanzhe"
+  - family-names: "Bai"
+    given-names: "Zechen"
+  - family-names: "Cao"
+    given-names: "Zhijun"
+  - family-names: "Zeng"
+    given-names: "Wenzheng"
+  - family-names: "Lin"
+    given-names: "Kevin Qinghong"
+  - family-names: "Lin"
+    given-names: "Yiqi"
+  - family-names: "Liang"
+    given-names: "Guoqiang"
+  - family-names: "Ma"
+    given-names: "Kevin Yuchen"
+  - family-names: "Huang"
+    given-names: "Qiming"
+  - family-names: "Shou"
+    given-names: "Mike Zheng"
+year: 2026
+# TODO(owner): add the arXiv id / DOI once the preprint is up.

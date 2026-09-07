@@ -1,0 +1,21 @@
+ROLE: AffordanceVerifier
+TASK: {task}
+INTENDED POINT: {instruction}
+CHOSEN PART: {part}
+
+You see ONE image: {view_desc}, with a {color} dot drawn where the gripper will aim.
+{context_lines}
+First: is {part} visible in THIS image?
+- NOT visible (left the frame, hidden, or never here) -> set present=false.
+- Visible -> set present=true, then judge STRICTLY whether the dot's center sits exactly on {part}:
+  - ON that part's visible pixels -- not on background, another object, an occluder, the gripper's fingers, or empty space inside a container's opening
+  - Long object: near one end, never the middle. Container or flat object: on the rim edge. Placement: the exact rest spot
+  - Off by even a little -> correct it
+
+COORDINATES: point = [y, x], integers on a 0-1000 grid: y from the TOP edge down, x from the LEFT edge right.
+
+Return JSON only:
+{{"present":true|false,"on_target":true|false,"why":"one visual clause","point":[y,x]}}
+- present false          -> point = [0,0] (ignored)
+- present true, on_target -> point = the dot's current location
+- present true, off       -> point = the CORRECTED location

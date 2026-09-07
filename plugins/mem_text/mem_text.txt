@@ -1,0 +1,17 @@
+Controller-prompt fragments owned by the move-memory plugin (see plugins/prompt_text.py
+for the [section] convention; {placeholders} are filled by plugin.py via str.replace).
+
+About [rules]: the move-history rules live with the memory they reason over. The
+oscillation ban carries an explicit overshoot exemption, and hunting resolves by
+RE-JUDGING, not by descending: a recorded PLACE failed exactly there --
+the ban blocked the needed rightward correction and the old "opposite directions ->
+prioritize MV_DOWN" line then instructed descent while still off-center, ending in a
+release beside the plate.
+
+[recent]
+Recent moves, newest first: {moves}
+
+[rules]
+- If recent moves show GRASP(empty), do not GRASP in place again; prioritize MV_UP, MV_BACK, MV_DOWN, or MV_FWD
+- NEVER OSCILLATE: Do NOT choose the opposite of the newest recent move (Pairs: MV_LEFT/MV_RIGHT, MV_FWD/MV_BACK)
+- When opposite directions appear in recent moves, prioritize MV_DOWN or MV_UP

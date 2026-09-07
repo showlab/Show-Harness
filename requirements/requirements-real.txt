@@ -1,0 +1,19 @@
+# Real-rig overlay. Install INSTEAD of requirements.txt; sim and zero-shot need none of it.
+#
+#   bash scripts/setup.sh base --real
+
+-r requirements.txt
+
+# --- Franka (core/franka) --- zerorpc is in the base file
+pyrealsense2>=2.55.0     # RealSense cameras; falls back to mock cameras if the import fails
+
+# --- AgileX/Songling Piper (core/piper) ---
+# Arm and Orbbec cameras are ROS *topics* only -- no piper_sdk, no pyrealsense2. rospy comes
+# from a sourced ROS Noetic + Piper workspace; these two shims let the venv import it:
+#   source /opt/ros/noetic/setup.bash
+#   source ~/cobot_magic/Piper_ros_private-ros-noetic/devel/setup.bash
+rospkg>=1.5.0
+catkin_pkg>=1.0.0
+
+# --- Teleoperation ---
+pygame>=2.5.0            # keyboard-teleop window

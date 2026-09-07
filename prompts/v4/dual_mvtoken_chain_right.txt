@@ -1,0 +1,8 @@
+# ==================================================
+# LAGECY PROMPT, USE DUAL_MVTOKEN_ONCE
+# ==================================================
+
+Now choose the next action for the RIGHT arm, given the LEFT arm token you just produced.
+Use the RIGHT wrist view to fine-align it, and keep the two arms coordinated.
+
+Return the single token only, no punctuation, no explanation:

@@ -1,0 +1,199 @@
+# Lab experiment state rides in an optional overlay (absent publicly).
+overlays:
+  - {path: experiments/current_sims.yaml, optional: true}
+
+# MVTOKEN atomic-token policy on RoboLab / NVIDIA Isaac Lab (relative differential IK).
+# Sibling of configs/robot_maniskill.yaml.
+#
+# Cross-domain zero-shot: the LoRA was trained on REAL Franka/Piper rollouts, so behaviour
+# here is exploratory. The camera geometry (crop/letterbox), the wrist flip and the
+# base-frame move_vectors below are the knobs to tune -- and the FIRST two must be verified
+# by eye with `--dump-views` before any success number is worth reading.
+
+# RoboLab task = the Task class name in <ROBOLAB_ROOT>/robolab/tasks/benchmark/*.py.
+# `python scripts/run_robolab_mvtoken.py --list-tasks` prints all 120. Pick-and-place tasks with a
+# single small object (BananaInBowlTask, BagelOnPlateTask, PickCubeTask) are closest to the
+# MVTOKEN training distribution; clutter / multi-object / tool-use tasks are far off it.
+task: RubiksCubeTask
+instruction_type: default   # default | vague | specific (per-task variants in the Task class)
+# Which embodiment the RoboLab task is registered against:
+#   franka -- Franka + PANDA HAND, wrist camera centred between the fingers looking down
+#             the grasp axis. Matches the ManiSkill rigs and the real Franka MVTOKEN was
+#             trained on, so the wrist view is in-distribution. (core/sim/robolab_franka.py)
+#   droid  -- RoboLab's stock Franka + Robotiq 2F-85, wrist camera at DROID's off-centre
+#             D415 pose. Faithful to DROID/RoboLab, but a different gripper mechanism and
+#             a different wrist geometry than the training data.
+robot: franka
+camera_preset: WRIST_LEFT   # WRIST_LEFT | WRIST_RIGHT | WRIST_LEFT_RIGHT | WRIST_LEFT_RIGHT_HEAD
+device: cuda:0
+seed: 0
+episode_index: 0            # added to seed -> a different layout randomisation per episode
+episodes: 1                 # episodes per process (the Isaac Sim app + env are reused)
+headless: true
+renderer: realtime          # realtime (RaytracedLighting) | pathtracing (offline, slow)
+rendering_type: null        # null | performance | balanced | quality
+enable_subtask: false       # RoboLab's per-step subtask predicates: extra physics queries,
+                            # and MVTOKEN eval only consumes the binary success.
+
+# ---- Cameras ---------------------------------------------------------------
+# With robot: franka, the WRIST_LEFT preset's two cameras are swapped for the
+# ManiSkill-matched pair (see core/sim/robolab_franka.py):
+#   front_cam -- RLinf's calibrated RealSense D435 front view, the SAME extrinsics and
+#                intrinsics ManiSkill uses as its agentview (external_cam). 640x480.
+#                RoboLab's stock over_shoulder_left_camera is DROID's off-to-the-left
+#                placement through a different lens -- a different viewpoint entirely.
+#   wrist_cam -- gripper-mounted, looking down the grasp axis, 256x256.
+# With robot: droid you get RoboLab's originals (over_shoulder_left_camera / wrist_cam).
+agentview_camera: front_cam
+wrist_camera: wrist_cam
+agentview_rotation_degrees: 0
+agentview_flip: none
+# RE-MEASURED on RubiksCubeTask (2026-08-04) after the switch to the PANDA HAND wrist
+# camera, against a rendered ManiSkill hand_camera frame as ground truth. The contract is
+# a composition of BOTH knobs, so read them together:
+#
+#   raw panda wrist_cam ..... fingertips enter from the LEFT edge, symmetric about the
+#                             HORIZONTAL centreline (the camera's own +x runs across the
+#                             jaw, not along it)
+#   ManiSkill hand_camera ... fingertips at the TOP, symmetric about the VERTICAL
+#                             centreline -- THE contract every MVTOKEN set was built on
+#
+# Left -> top is a 270 deg CCW turn (= 90 deg CW), verified by rendering all four
+# candidates: 270 reproduces the ManiSkill composition exactly, and 90 (the other
+# axis-aligned option) puts the fingertips at the BOTTOM -- the 180 deg opposite.
+#
+# Expressed as ONE pure rotation on purpose. The previous value (0 + flip: both) was
+# measured on the ROBOTIQ wrist, whose sensor sat at a different mounting angle; carrying
+# it over to the panda hand left the view 90 deg off. Keeping this a rotation (never a
+# mirror) is what preserves left/right: the wrist is the policy's steering view, so a
+# mirrored wrist makes it emit MV_RIGHT for an object on the left and oscillate forever.
+# RE-MEASURE with --dump-views whenever the camera, the mount or the embodiment changes.
+wrist_rotation_degrees: 270
+# Options: none | vertical (flipud) | horizontal (fliplr) | both (180 deg rotation).
+# `none` because the 270 above already carries the whole correction.
+wrist_flip: none
+use_wrist_image: true
+
+# front_cam already renders 4:3 (640x480), exactly like the ManiSkill agentview and the
+# real rigs, so no crop is needed -- it goes straight to the 256 letterbox below.
+# (RoboLab's stock over_shoulder_left_camera is 16:9 and DOES need 1.3333 here: letterboxing
+# 16:9 into a 256 square leaves 256x144 of picture inside 56 black rows, so the scene fills
+# far less of the frame than in training. Set that value if you switch to robot: droid.)
+agentview_crop_aspect: null
+# 4:3, the SAME as the agentview and as every real rig -- not because the sensor is 4:3
+# (it renders 256x256) but because the stored frame must be. resize_with_pad of a square
+# image into a square is the identity, so with no crop the wrist came out filling the
+# whole 256x256 frame, while every real-robot MVTOKEN wrist is a 640x480 capture
+# letterboxed to 256x192 between 32 black rows. The policy steers by this view, and it
+# was seeing the scene 1.33x larger than anything it was trained on. Cropping to 4:3
+# first restores both the aspect and the letterbox. Verified: 32/32 black rows on BOTH
+# views, matching 0704_cleaned / 0705_piper / 0627_cleaned.
+wrist_crop_aspect: 1.3333
+wrist_square_size: 256
+# TRAINING CONTRACT: the real-robot sets store agentview as a 256x256 letterbox
+# (core.franka.camera_utils.resize_with_pad). Sending the raw 1280x720 render would be
+# a different geometry AND, being far wider than 448, many InternVL tiles where the model
+# trained on 1.
+agentview_square_size: 256
+
+# ---- Atomic step -> relative-IK action -------------------------------------
+# RoboLab's DroidRelIKActionCfg action is [dx, dy, dz, drx, dry, drz, gripper]; the first
+# three are a base-frame EE displacement divided by the cfg's `scale` (0.5, read off the cfg
+# at runtime). Rotation DOFs are held at 0 -> the IK re-targets the current orientation each
+# step, i.e. rotation is locked.
+#
+# The MVTOKEN convention is 2 cm PHYSICAL per token. `step_m` is the COMMANDED total, not
+# the achieved one -- like configs/robot_maniskill.yaml, the achieved value is what was
+# measured and what matters.
+#
+# MEASURED 2026-07-29 on BananaInBowlTask by sweeping (n_steps x per-step command):
+# RoboLab's relative IK achieves a CONSTANT ~28% of whatever is commanded, independent of
+# both knobs (4x5mm -> 5.4mm, 8x10mm -> 22.2mm, 16x5mm -> 22.5mm, all 27-28%). That is the
+# rel-IK semantics: each step re-targets "current pose + delta", so while the solver lags,
+# every step re-bases on a position that has not arrived -- travel does not accumulate
+# linearly and cannot be recovered by adding steps.
+#
+# 0.072 commanded over 8 steps therefore lands on 2 cm:
+#   MV_FWD 20.30 | MV_BACK 20.28 | MV_LEFT 20.12 | MV_RIGHT 20.11 | MV_UP 19.97 | MV_DOWN 19.95
+#   mean 20.12 mm, sd 0.13 mm, max off-axis 0.32 mm
+# (4 steps hits the same mean but is noisier: sd 0.30 mm, off-axis 0.69 mm.)
+# RE-MEASURE with --probe-axes after changing the robot, the task, or dt/decimation.
+step_m: 0.072                   # COMMANDED; ~28% of it is achieved -> 2 cm physical
+sim_steps_per_decision: 8       # 8 x 9 mm commanded
+# Zero-delta hold steps after the motion steps. Kept at 0 on purpose: under relative IK a
+# zero delta re-targets the CURRENT pose, i.e. "stay here" -- it does not let the solver
+# keep converging on the previous target, so settling buys nothing here (unlike ManiSkill's
+# pd_ee_delta_pos). The 28% factor above already accounts for the lag.
+settle_steps_per_decision: 0
+max_delta_m: 0.05               # per-control-step safety cap on the IK target step
+# The Robotiq 2F-85 is a BINARY joint command, so a GRASP has to be held for the fingers to
+# travel and load up on the object. 0 -> reuse sim_steps_per_decision.
+gripper_hold_steps: 10
+
+# Base-frame unit vector per move token, matching configs/primitives_franka.yaml (the real
+# Franka convention): +X away from the base, robot-left = -Y, +Z up. RoboLab's Franka sits
+# at the origin with that same convention, but CONFIRM with --probe-axes: flip a sign here
+# if moves come out mirrored relative to how the camera sees the scene. (Do not "fix" a
+# mirrored wrist by inverting Y here -- fix wrist_flip instead; on ManiSkill that exact
+# confusion produced a Y inversion that only looked right.)
+move_vectors:
+  MV_FWD:   [1.0, 0.0, 0.0]
+  MV_BACK:  [-1.0, 0.0, 0.0]
+  MV_LEFT:  [0.0, -1.0, 0.0]
+  MV_RIGHT: [0.0, 1.0, 0.0]
+  MV_UP:    [0.0, 0.0, 1.0]
+  MV_DOWN:  [0.0, 0.0, -1.0]
+
+# ---- Tools -----------------------------------------------------------------
+plugins:
+  auto_release: true   # reopen the gripper when its closed width < empty_width_m
+
+# Empty-grasp width for plugins.auto_release, in metres of Robotiq opening (derived from the
+# finger_joint angle: 0 rad = 85 mm open, pi/4 = 0 mm closed). A closed-and-empty Robotiq
+# drives the joint to its close command and reads ~0; anything held keeps the fingers apart.
+# 5 mm separates them with margin. (Real-robot default is 0.001, which is too tight here.)
+empty_width_m: 0.005
+
+num_steps_wait: 8
+max_steps: 80
+loop_period_s: 0.0
+log_dir: rollouts/robolab
+
+v0:
+  video_fps: 5.0
+
+# Which served VLM the runner talks to. Released checkpoints are named
+# <model>_showharness_<split>; see docs/finetuned.md for the base model and FAMILY each needs.
+vlm_backend: qwen3_5_2b
+
+vlm:
+  base_url: http://localhost:8000/v1
+  timeout_s: 120
+  startup_wait_s: 600
+  startup_poll_s: 5
+  temperature: 0.0
+  api_key: EMPTY
+
+vlm_backends:
+  # ---- Fine-tuned action policies -----------------------------------------
+  # Serve one with:
+  #   MODEL=<base> FAMILY=<family> LORA=<adapter-name>=<path> bash scripts/serve_vlm.sh
+  # `model` below must equal the adapter name the server registered. Override for
+  # one run with --model <adapter-name>.
+  finetuned_local:
+    # Your own adapter. Rename `model` to whatever you registered.
+    provider: vllm
+    model: your_adapter_name
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_2b:
+    # Qwen3.5-2B LoRA fine-tuned on the sim split - RoboLab and ManiSkill
+    # together, one policy for both simulators (FAMILY=qwen3_5).
+    provider: vllm
+    model: qwen3_5_2b_showharness_sim
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false

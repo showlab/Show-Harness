@@ -1,0 +1,131 @@
+# Franka single-arm, zero-shot mode: a frontier VLM drives the full plugin
+# harness (scripts/run_real.py). Fine-tuned counterpart: robot_franka_ft.yaml.
+#
+# Layering -- one file per concern:
+#   defaults:  merged UNDER this file (this file's keys win)
+#   overlays:  merged OVER this file (their keys win)
+# Site identity (robot IP, camera serials) is required from configs/site/;
+# a new install copies site/franka.yaml.example. The optional layers carry
+# lab-internal endpoints and the active experiment state and are absent from
+# the public release.
+defaults:
+  - site/franka.yaml
+  - {path: backends/internal.yaml, optional: true}
+overlays:
+  - {path: experiments/current_franka.yaml, optional: true}
+
+# ----- Task -----------------------------------------------------------------
+task: "Pick up the orange block and place it on the plate"
+# task: "Pick up the tennis ball and place it on the plate"
+# task: "Pick up the banana and place it on the plate"
+# task: "Pick up the white bear toy and place it on the center of the plate"
+# task: "Pick up the chinese chess and place it on the center of the plate"
+# ... same five objects with "in the bowl" as the target receptacle.
+# task: "Find and grasp the object under one of the blocks"          # deepplan demo
+# task: "Arrange the four letters to spell out SHOW"                 # reasoning demo
+
+# ----- VLM ------------------------------------------------------------------
+vlm_backend: gemini   # gemini | chatgpt | local (see vlm_backends below)
+
+# ----- Rollout --------------------------------------------------------------
+max_steps: 200
+
+# ----- Plugins ----------------------------------------------------------------
+plugins:
+  subgoal: true
+  proprioception: true
+  recovery: true
+  variable_step: true
+  action_chunk: true
+  mem_text: true
+  smooth: true
+  dagger: true
+  coords: false
+  mcq: false
+  deepplan: false
+  rotation: false
+  video_ref: false
+  affordance: false
+
+# ----- Plugin settings ------------------------------------------------------
+gripper_color: ""
+high_above_table_m: 0.08
+coarse_step_m: 0.04
+fine_step_m: 0.02
+up_step_m: 0.04
+rotate_step_deg: 40
+action_chunk_step_num: 3
+mem_text_len: 5
+affordance_verify_rounds: 2
+hd_res: 640
+affordance_wrist_track: false
+# Action-representation ablation for the controller's answer space (research
+# instrumentation; the paper's settings A-D):
+#   off           = MV_* tokens + direction explanations (the normal harness)
+#   bare          = MV_* tokens, NO explanations
+#   letters       = opaque ACT_* symbols + direction explanations
+#   letters_blind = opaque symbols; TOLD the six symbols are the six directions but
+#                   not the mapping. Blind-pick, judge each pick from the before/after
+#                   frame pair, fill a symbol->effect table (fed back each step and
+#                   saved as action_table.json in the rollout).
+action_ablation_mode: "off"   # quoted: bare off is YAML boolean False
+# video_ref_path: /path/to/demo.mp4
+video_ref_frames: 8
+planner_max_tokens: 6144
+
+# ----- Poses ---------------------------------------------------------------
+move_to_begin_on_init: true
+begin_pose: default
+begin_time_s: 3.0
+poses:
+  default:   [0.0, -0.5058451, 0.0, -2.6068573, 0.0, 2.0711833, 0.86116207]  # arm home
+  chess: [0.00543, 0.02223, -0.00066, -2.50480, 0.02186, 2.45154, 0.82810]
+
+# ----- Models ---------------------------------------------------------------
+vlm:
+  base_url: http://localhost:8000/v1
+
+vlm_backends:
+  gemini:
+    provider: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-3.1-pro    # the paper's default zero-shot model
+    api_key_env: GEMINI_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    reasoning_effort: medium   # low | medium | high
+    max_retries: 10
+  chatgpt:
+    provider: openai
+    base_url: https://api.openai.com/v1
+    model: gpt-5.5
+    api_key_env: CHATGPT_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    reasoning_effort: medium   # low | medium | high
+    max_retries: 10
+  local:
+    # Any OpenAI-compatible local server:
+    #   bash scripts/serve_vlm.sh              # serves the default below
+    #   MODEL=<your-vlm> bash scripts/serve_vlm.sh
+    # `model` must match what that server reports at /v1/models.
+    provider: vllm
+    base_url: http://localhost:8000/v1
+    model: Qwen/Qwen3.5-9B
+    max_tokens: 2048
+    reasoning_cot: true
+
+# ----- Safety rules----------------------------------------------------------
+# !! SITE CALIBRATION: capture on YOUR hardware before autonomous runs !!
+# z_floors: named minimum end-effector heights; the active one (z_floor_name)
+# is a hard floor no command may descend below. Capture with
+#   bash scripts/franka/capture_z_floor.sh --name <name> --write
+empty_width_m: 0.001
+open_width_m: 0.07
+enable_z_floor: true
+z_floor_name: default
+z_floors:
+  default: 0.14   # empty table
+  chess: 0.19
+  chess_single: 0.17
+  franka_gripper: 0.144

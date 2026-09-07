@@ -1,0 +1,14 @@
+# Base environment (.venv, Python >= 3.10): the harness itself. Enough for zero-shot and
+# for driving a served fine-tuned model. Reference env: numpy 1.26 / opencv 4.11 / py3.11.
+#
+#   bash scripts/setup.sh base
+
+numpy>=1.23.5,<2.0.0        # <2: the real-robot and sim toolchains still need it
+opencv-python>=4.10,<4.12   # 4.12+ requires numpy>=2
+imageio>=2.35.1
+imageio-ffmpeg>=0.5.1
+Pillow>=10.4.0
+PyYAML>=6.0.2
+requests>=2.32.3
+scipy>=1.10                 # SO(3) math in the interpreters
+zerorpc>=0.6.3              # Franka transport; imported unconditionally by the session layer

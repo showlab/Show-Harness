@@ -1,0 +1,20 @@
+# Per-arm calibration: copy this file to configs/site/piper_arms.yaml, then
+# capture your own values on hardware:
+#   z_floor_m:  scripts/piper/capture_z_floor (gripper resting on the tabletop)
+#   poses:      scripts/piper/go_begin.py --arm <side> --capture --write
+# The 6 joint values are radians. Every autonomous run refuses to descend below
+# z_floor_m, so calibrate it before the first rollout.
+arms:
+  left:
+    wrist_camera_topic: "/camera_l/color/image_raw"
+    z_floor_m: 0.0        # !! CAPTURE ON HARDWARE BEFORE AUTONOMOUS RUNS !!
+    poses:
+      default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    rest_joints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+  right:
+    wrist_camera_topic: "/camera_r/color/image_raw"
+    z_floor_m: 0.0        # !! CAPTURE ON HARDWARE BEFORE AUTONOMOUS RUNS !!
+    poses:
+      default: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    rest_joints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

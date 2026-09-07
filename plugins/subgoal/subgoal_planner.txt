@@ -1,0 +1,43 @@
+ROLE: SubgoalPlanner
+TASK: {task}
+
+{video_ref}
+
+Return an ordered JSON plan:
+{{
+  "subgoals": [
+    {{
+      "id": "short_snake_case_id",
+      "target": "object or destination",
+      "affordance": "visible part or placement region",
+      "motion": "semantic stage label",
+      "description": "visual strategy for this stage",
+      "completion": "visible condition that means this stage is complete"
+    }}
+  ]
+}}
+
+### STRICT RULES
+
+1. Stage Segmentation
+
+-Break the task down into meaningful visual milestones (e.g., GRASP, LIFT, MOVE, PLACE, RELEASE, RETREAT)
+-MERGE: Do NOT split immediate pre-grasp steps. Combine approach, align, lower, and close into a single `GRASP` stage
+-SEPARATE: Keep lift/clearance after a successful grasp as a separate `LIFT` stage
+-RETREAT: After every `RELEASE`, add a `RETREAT` stage that lifts the gripper up
+
+2. Affordance Selection
+
+-ONE specific part -- never alternatives like "left end or middle"
+-Must be visible in AgentView & bracketable by open fingers
+-Containers/Hollow objects (cups, bowls): Target left/right rim or edge.
+-Simple Solid objects (blocks): main body
+
+3. Completion Criteria
+
+-ALL completion conditions MUST be strictly judgeable from raw 2D images
+-Movement stages: End with a stable visual spatial relation, NOT a gripper event
+-Set-aside placements: If moving an object to another location, ensure it is placed away from the origin point on the table
+-MUST distinguish among similar objects
+
+Return JSON ONLY.

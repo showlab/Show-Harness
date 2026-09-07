@@ -1,0 +1,61 @@
+ROLE: DualArmSubgoalPlanner
+TASK: {task}
+
+Two robot arms work in PARALLEL on one workspace. Image A = front view (both arms). Image B = LEFT wrist view (identifies the LEFT arm's gripper). Image C = RIGHT wrist view (identifies the RIGHT arm's gripper)
+
+{video_ref}
+
+Return a JSON plan with one ordered stage track PER ARM. The two tracks execute CONCURRENTLY (each arm advances through its own track at the same time):
+{{
+  "left": [
+    {{
+      "id": "short_snake_case_id",
+      "target": "object or destination",
+      "affordance": "visible part or placement region",
+      "motion": "semantic stage label",
+      "description": "visual strategy for this stage",
+      "completion": "visible condition that means this stage is complete"
+    }}
+  ],
+  "right": [ ... ]
+}}
+
+### STRICT RULES
+
+1. Arm Assignment
+
+-Assign each object to exactly ONE arm. Prefer the arm whose gripper (identify it via its wrist view) is nearer/less obstructed in the front view
+-Keep BOTH arms busy in parallel whenever the task allows (e.g. each arm clears its own side)
+-An arm with nothing to do gets an empty track []
+
+2. Stage Segmentation
+
+-Break each arm's work into meaningful visual milestones (e.g., GRASP, LIFT, MOVE, PLACE, RELEASE, RETREAT)
+-MERGE: Do NOT split immediate pre-grasp steps. Combine approach, align, lower, and close into a single `GRASP` stage
+-SEPARATE: Keep lift/clearance after a successful grasp as a separate `LIFT` stage
+-RETREAT: After every `RELEASE`, add a `RETREAT` stage that ONLY needs to lift the gripper up
+
+3. Cross-Arm Coordination
+
+-When an arm cannot act until the other has acted, give it a `WAIT` stage: description says to hold still, completion is the VISIBLE condition that lets it proceed
+-HANDOVER: the RECEIVER does the approaching, never the giver. Plan exactly this:
+   giver:    `PRESENT` (carry the object until it appears in the RECEIVER's wrist view, then hold) -> `WAIT` (hold still while the receiver grasps) -> `RELEASE` -> `RETREAT`
+   receiver: `WAIT` (until the object appears in ITS OWN wrist view) -> `GRASP` (the object's FREE end, away from the giver's fingers) -> then carry on with the task
+-SHARED SMALL DESTINATION: when both arms deliver to the same small destination, SERIALIZE the deliveries -- before the second arm's move-to-destination stage, insert a `WAIT` stage whose completion is that the first object is finished
+-Never plan both grippers onto the same small object at the same time unless the task requires it (handover, folding cloth together)
+
+4. Affordance Selection
+
+-ONE specific part -- never alternatives like "left end or middle"
+-Must be visible in the front view & bracketable by open fingers
+-Containers/Hollow objects (cups, bowls): Target left/right rim or edge
+-Simple Solid objects (blocks): main body
+
+5. Completion Criteria
+
+-ALL completion conditions MUST be strictly judgeable from raw 2D images
+-The front view CANNOT show how far apart the two grippers are (no depth). Any condition about one arm reaching the other must instead be "<object> is visible in the <left|right> wrist view"
+-Movement stages: End with a stable visual spatial relation, NOT a gripper event
+-MUST distinguish among similar objects, and between the two arms
+
+Return JSON ONLY.

@@ -1,0 +1,184 @@
+# Lab experiment state rides in an optional overlay (absent publicly).
+overlays:
+  - {path: experiments/current_sims.yaml, optional: true}
+
+# MVTOKEN atomic-token policy on ManiSkill (translation-only pd_ee_delta_pos).
+# Cross-domain zero-shot: the LoRA was trained on
+# REAL Franka/Piper rollouts, so behaviour here is exploratory. The camera orientation and
+# the base-frame move_vectors below are the two knobs to tune from the rollout video.
+
+# BlockPAP-v1 = RLinf's real2sim replica of the real Franka rig: same table/pedestal/
+# ground/lighting/block+coaster AND the calibrated front RealSense (external_cam) -- the
+# smallest domain gap available. Alternative: BlockStack-v1 (same rig, stacking task), or
+# a stock task like PickCube-v1 / StackCube-v1 (generic base_camera, much larger gap).
+# Every registered env, its instruction and its robot uid live in core/sim/maniskill_scenes.py.
+env_id: BlockPAP-v1
+# BlockPAP's high-friction Panda + a gripper-mounted hand_camera (BlockPAP's stock
+# panda_high_friction is on panda_v2.urdf and has no wrist camera).
+robot_uids: panda_high_friction_wristcam
+
+# Per-scene knobs. Which keys an env understands (and their defaults) are declared in that
+# env's SceneSpec row in core/sim/maniskill_scenes.py; keys it does not know are ignored, so the
+# same block can be shared across configs targeting different envs. (Formerly `blockpap:`,
+# which is still accepted.)
+scene:
+  table_tex: white        # white | black | texture id "001".."021" (RLinf wood textures)
+  traj_id: "0"            # block/coaster layout preset: 0 | 15 | 25 | 40 | 45 | random
+                          # --traj-id random + --layout wide reproduces the training
+                          # distribution (the evaluation protocol).
+  cam_t: og               # external_cam translation calibration: og | 0302 | 0303
+  wrist_resolution: 256
+  # Measured by projecting the finger links into the wrist camera (tilt is 0.0 deg either
+  # way -- the "skew" was pure lateral offset):
+  #   camera_link -> finger pair 115px off centre (45% of the frame). The stock RealSense
+  #     rig; faithful to RLinf's real Franka but far off-axis vs the MVTOKEN training wrist.
+  #   centered    -> 1px off centre, fingertips entering from the TOP, wrist left == agentview
+  #     left, and reachable by a rigid 180 deg image rotation (wrist_flip: both) with no
+  #     mirror. Keep these two in sync: this mount is only correct WITH wrist_flip: both.
+  wrist_mount: centered
+control_mode: pd_ee_delta_pos
+sim_backend: physx_cpu          # physx_cpu (1 env, deterministic) | physx_cuda
+# null -> keep each camera's own resolution (external_cam is 640x480 with the RealSense K;
+# a square override would corrupt that intrinsic). Set an int only for uncalibrated cams.
+camera_resolution: null
+seed: 0
+episode_index: 0                # added to seed -> a different reset layout per episode
+task_description: null          # null -> per-env default (core.sim.maniskill_scenes)
+
+# Camera selection + orientation. rotation is 0/90/180/270 (CCW); flip is
+# none|vertical|horizontal|both, applied after rotation. The ManiSkill hand_camera comes
+# out with the gripper fingertips at the BOTTOM, but the MVTOKEN training wrist has them at
+# the TOP -> wrist_flip: vertical (an upside-down wrist-mount quirk). Verified against a
+# real Franka training wrist frame: fingers-top, horizontal opening -> matches after flip.
+agentview_camera: external_cam   # external_cam on the RLinf rigs; base_camera on stock tasks
+wrist_camera: hand_camera
+agentview_rotation_degrees: 0
+agentview_flip: none
+# Letterbox the agentview render to a square before sending it (null = send raw).
+# TRAINING CONTRACT: ms_0717's agentview frames were converted to 256x256 with
+# core.images.resize_with_pad (equal-ratio scale + black bars) so they match the real-robot
+# sets. Sending the raw 640x480 render instead would be a different geometry AND, being
+# wider than 448, 13 InternVL tiles where the model trained on 1.
+agentview_square_size: 256
+# The wrist gets the IDENTICAL treatment -- 4:3 crop then 256 letterbox. hand_camera
+# renders 256x256, and letterboxing a square into a square does nothing, so without the
+# crop the stored wrist filled the frame while every real training wrist has 32 rows of
+# padding top and bottom. Same defect was present on RoboLab; fixed in both.
+wrist_crop_aspect: 1.3333
+wrist_square_size: 256
+wrist_rotation_degrees: 0
+# "both" = flipud+fliplr, i.e. a 180 deg ROTATION (a proper rotation -- what an upside-down
+# mounted camera produces -- not a mirror; flipud ALONE is the mirror). It is the only option
+# satisfying both parts of the training contract, measured on traj_id 0 (block at y=-0.15):
+#   agentview block centroid x=0.32 (LEFT)
+#   wrist none/vertical -> x=0.76 (RIGHT, reversed);  horizontal/both -> x=0.23 (LEFT, agrees)
+#   fingertips TOP: vertical/both;  BOTTOM: none/horizontal
+# -> both = fingertips TOP *and* wrist left == agentview left.
+# This matters more than it looks: the wrist is the policy's steering view, so a reversed
+# wrist makes it emit MV_RIGHT when the block is on the left -> MV_LEFT/MV_RIGHT oscillation.
+# Re-measure this whenever the scene or either camera changes.
+wrist_flip: both
+use_wrist_image: true
+
+# Robot start joint angles (prefix override; null -> ManiSkill default rest pose
+# [0, pi/8, 0, -5pi/8, 0, 3pi/4, pi/4, 0.04, 0.04]). pd_ee_delta_pos holds the start EE
+# orientation, so this is the knob for the wrist-roll joint7 (fingers' opening axis vs the
+# object + how the gripper looks in agentview). joint7 is INVISIBLE in the wrist view
+# (camera + fingers both ride panda_hand, co-rotating).
+# MUST stay null for BlockPAP-v1: its _initialize_episode sets the real-rig calibrated start
+# qpos per trajectory (joint7 included), and this override is applied after reset -- setting
+# it would clobber that calibration and start the arm off-rig.
+# For the stock cube tasks it is the joint7 knob, e.g. a clean +90 deg gripper roll:
+#   reset_qpos: [0.0, 0.3927, 0.0, -1.9635, 0.0, 2.3562, 0.7854]
+reset_qpos: null
+
+# Object layout at reset. null -> the env's own reset. `wide` re-randomises block +
+# coaster exactly like the training data generator (scripts/trajectory/real2sim/maniskill/
+# tasks.randomize_layout, ~22x43 cm each, >=12 cm apart) -- BlockPAP's own reset moves the
+# coaster over only 4x2 cm, so evaluating without it sits off the training distribution.
+# Override per run with --layout wide. Leave null for envs that already randomise both.
+layout: null
+
+# Atomic step -> pd_ee_delta_pos action. action=1.0 == delta_bound_m metres/control step
+# (stock Panda arm_pd_ee_delta_pos pos bound = 0.1 m). step_m is the per-decision COMMAND;
+# a decision repeats it sim_steps_per_decision control steps, and PD lag means achieved <
+# commanded. The MVTOKEN convention is 2 cm PHYSICAL per token (the ms_0717 sim datasets
+# are generated closed-loop at exactly that), so these two are tuned by probe to land
+# there: step_m 0.026 x 2 repeats -> measured 20.2 +- 0.2 mm per decision on BlockPAP.
+# (Old exploratory value was 0.05 x 3 aka ~45 mm/decision -- 2.2x the trained step.)
+step_m: 0.026
+delta_bound_m: 0.1
+open_gripper_action: 1.0        # Panda mimic gripper: +1 -> open (0.04)
+close_gripper_action: -1.0      #                      -1 -> close
+
+# Base-frame unit vector per move token. World at reset (verified by axis probe):
+# +X away from the base, +Y robot-left, +Z up.
+#
+# Base-frame unit vector per move token, matching primitives.yaml (the real-Franka
+# convention): +X away from the base, robot-left = -Y, +Z up. Verified by the axis probe.
+# Keep these in sync with the camera transforms above rather than compensating here: an
+# earlier Y inversion here "fixed" the approach only because the wrist was reversed
+# (wrist_flip: vertical); with the wrist correct (both) the plain convention steers right.
+# Inverting X was outright wrong -- it drove MV_FWD backwards through the robot base.
+move_vectors:
+  MV_FWD:   [1.0, 0.0, 0.0]
+  MV_BACK:  [-1.0, 0.0, 0.0]
+  MV_LEFT:  [0.0, -1.0, 0.0]
+  MV_RIGHT: [0.0, 1.0, 0.0]
+  MV_UP:    [0.0, 0.0, 1.0]
+  MV_DOWN:  [0.0, 0.0, -1.0]
+
+# ----- Plugins ----------------------------------------------------------------
+plugins:
+  auto_release: true   # reopen the gripper when its closed width < empty_width_m
+
+# Empty-grasp width for plugins.auto_release. Sim calibration (BlockPAP, measured over a
+# rollout): an OPEN gripper reads 0.024-0.080 m, a CLOSED-and-EMPTY one 0.000-0.0024 m, and
+# a held block sits well above that -- so 0.005 separates them cleanly. Note this is 5x the
+# real-robot default (0.001), which would miss ManiSkill's empty grasps.
+empty_width_m: 0.005
+
+num_steps_wait: 8
+max_steps: 80
+sim_steps_per_decision: 2   # paired with step_m: 0.026 -> ~20 mm physical per decision
+loop_period_s: 0.0
+log_dir: rollouts/maniskill
+
+v0:
+  video_fps: 5.0
+
+# Which served VLM the runner talks to. Released checkpoints are named
+# <model>_showharness_<split>; see docs/finetuned.md for the base model and FAMILY each needs.
+vlm_backend: qwen3_5_2b
+
+vlm:
+  base_url: http://localhost:8000/v1
+  timeout_s: 120
+  startup_wait_s: 600
+  startup_poll_s: 5
+  temperature: 0.0
+  api_key: EMPTY
+
+vlm_backends:
+  # ---- Fine-tuned action policies -----------------------------------------
+  # Serve one with:
+  #   MODEL=<base> FAMILY=<family> LORA=<adapter-name>=<path> bash scripts/serve_vlm.sh
+  # `model` below must equal the adapter name the server registered. Override for
+  # one run with --model <adapter-name>.
+  finetuned_local:
+    # Your own adapter. Rename `model` to whatever you registered.
+    provider: vllm
+    model: your_adapter_name
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_2b:
+    # Qwen3.5-2B LoRA fine-tuned on the sim split - RoboLab and ManiSkill
+    # together, one policy for both simulators (FAMILY=qwen3_5).
+    provider: vllm
+    model: qwen3_5_2b_showharness_sim
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false

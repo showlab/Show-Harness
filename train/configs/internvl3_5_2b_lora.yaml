@@ -1,0 +1,61 @@
+# mvtoken LoRA template - InternVL3.5-2B.
+# Same hyper-parameters as the Qwen template; only template/model differ, so the two
+# are directly comparable.
+#   CONFIG=train/configs/internvl3_5_2b_lora.yaml GPU=0,1 bash train/scripts/train.sh
+#
+# Do not use the <video> slot: InternVL does not fuse frames there (each frame is its own
+# 256 tokens, same as image), and LF trains with ImageNet normalization while vLLM serves
+# with CLIP's - the mismatch is silent. Stay on the image slot.
+
+### model
+model_name_or_path: OpenGVLab/InternVL3_5-2B-HF   # local weights: pass MODEL_PATH=/path/to/weights
+image_max_pixels: 65536    # 256x256, kept identical to the Qwen side for comparison
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: lora
+freeze_vision_tower: true
+freeze_multi_modal_projector: false
+
+### LoRA
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target: all
+
+### dataset
+dataset: <FILL_ME>
+template: intern_vl
+cutoff_len: 2048
+overwrite_cache: true
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+### output
+output_dir: saves/internvl3.5-2b/robot/<FILL_ME>    # relative -> train.sh pins it under train/
+logging_steps: 2
+save_steps: 200
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: wandb
+# wandb project/entity come from WANDB_PROJECT / WANDB_ENTITY, passed by train.sh.
+# Upstream has no wandb_entity yaml key, and `project` here is transformers' Trackio
+# field, not the wandb project.
+run_name: internvl3.5-2b-robot-<FILL_ME>
+
+### train
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+num_train_epochs: 40.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+max_grad_norm: 1.0
+bf16: true
+ddp_timeout: 180000000
+
+### distributed
+deepspeed: examples/deepspeed/ds_z2_config.json

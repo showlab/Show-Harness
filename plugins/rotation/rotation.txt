@@ -1,0 +1,1 @@
+-If the gripper fingers need to rotate clockwise/counterclockwise to align with the TARGET's sides -> ROTATE_CW/ROTATE_CCW 

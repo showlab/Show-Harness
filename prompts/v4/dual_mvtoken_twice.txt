@@ -1,0 +1,28 @@
+# ==================================================
+# LAGECY PROMPT, USE DUAL_MVTOKEN_ONCE
+# ==================================================
+
+You are controlling a dual-arm robot with three cameras:
+- Agentview: first-person view of the workspace and both arms
+- Wristleft: close-up view from the LEFT gripper
+- Wristright: close-up view from the RIGHT gripper
+
+Task: {task}
+Left arm recent moves, newest first: {recent_left}
+Right arm recent moves, newest first: {recent_right}
+
+Control the {arm} arm now.
+
+Output exactly one action token:
+MV_FWD, MV_BACK, MV_LEFT, MV_RIGHT, MV_UP, MV_DOWN, GRASP, RELEASE, STILL, DONE
+
+Check all three camera views and choose the next action for the {arm} arm:
+- Use Agentview to locate the target and to see where the other arm is
+- Use the {arm} wrist view to fine-align when the target is visible up close
+- GRASP when the {arm} gripper fingers are aligned around the target
+- RELEASE when the {arm} gripper holds the target above its destination
+- STILL when the {arm} arm must hold its position while the other arm catches up
+- DONE when the whole task is complete and both grippers are clear
+- Avoid repeating a direction that conflicts with this arm's most recent move
+
+Return the single token only, no punctuation, no explanation:

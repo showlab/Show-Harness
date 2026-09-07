@@ -1,0 +1,97 @@
+# AgileX Piper dual-arm rig, zero-shot mode: one VLM jointly drives both arms
+# (scripts/run_real_dual.py mode B; mode A runs two independent single-arm stacks).
+# Fine-tuned counterpart: robot_piper_ft.yaml.
+#
+# Layering (see robot_franka.yaml for the mechanism): per-arm calibration is
+# shared from configs/site/piper_arms.yaml; the optional layers carry internal
+# endpoints and the active experiment state and are absent from the public
+# release.
+defaults:
+  - site/piper_arms.yaml
+  - {path: backends/internal.yaml, optional: true}
+overlays:
+  - {path: experiments/current_piper.yaml, optional: true}
+
+# ----- Task -----------------------------------------------------------------
+task: "Left arm grasps the green stem of the banana and lifts it, right arm grasps the tip of the banana and places the banana in the center of the blue plate"
+# task: "Pick up the block and banana and place them on the plate"
+
+# ----- VLM ------------------------------------------------------------------
+vlm_backend: gemini   # gemini | chatgpt (see vlm_backends below)
+
+# ----- Rollout --------------------------------------------------------------
+max_steps: 100
+
+# ----- Plugins ----------------------------------------------------------------
+plugins:
+  subgoal: true
+  proprioception: true
+  recovery: true
+  variable_step: true
+  view_select: false
+  dagger: true
+  mem_text: true
+  smooth: true
+  action_chunk: false
+  coords: false
+  mcq: false
+  deepplan: false
+  rotation: false
+  video_ref: false
+  affordance: false
+
+# ----- Plugin settings ---------------------------------------------------------
+coarse_step_m: 0.04
+fine_step_m: 0.02
+up_step_m: 0.04
+action_chunk_step_num: 3
+mem_text_len: 3
+affordance_verify_rounds: 1
+# video_ref_path: /path/to/demo.mp4
+video_ref_frames: 8
+
+# ----- Models ---------------------------------------------------------------
+vlm:
+  base_url: http://localhost:8000/v1
+
+vlm_backends:
+  gemini:
+    provider: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-3.1-pro    # the paper's default zero-shot model
+    api_key_env: GEMINI_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    max_retries: 10
+    reasoning_effort: medium   # low | medium | high
+  chatgpt:
+    provider: openai
+    base_url: https://api.openai.com/v1
+    model: gpt-5.5
+    api_key_env: CHATGPT_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    reasoning_effort: medium   # low | medium | high
+    max_retries: 10
+
+# ----- Hardware target --------------------------------------------------------
+hardware: piper
+primitives_config: configs/primitives_piper.yaml
+
+# ----- View geometry ----------------------------------------------------------
+is_ego: true
+motion_frame: wrist  # base | wrist
+
+# ----- Safety rules (SHARED) --------------------------------------------------
+# !! CALIBRATE BEFORE AUTONOMOUS RUNS !!  (z_floor_m is PER-ARM, in site/piper_arms.yaml)
+enable_z_floor: true
+empty_width_m: 0.005
+open_width_m: 0.07
+gripper_color: ""
+# !! CALIBRATE ON HARDWARE -- these size the agent's motion AND its reach reasoning !!
+high_above_table_m: 0.15   # gap (eef_z - z_floor)
+
+# ----- Poses (SHARED policy; the joint values are PER-ARM in site/piper_arms.yaml) ---
+move_to_begin_on_init: true
+begin_pose: natural
+mirror_capture: true

@@ -1,0 +1,27 @@
+4. Conditional Tasks (deferred reasoning)
+
+Use this ONLY when the task cannot be fully planned from the current view because the correct continuation depends on information you do not yet have -- something you must first reveal by acting (uncover, move, open, or look closer), or a state you can only judge once a later stage is reached. Cues: "one of", "whichever", "the correct one", "the right one", "if ... then", "find ... under / inside / behind", or "the one that is (full / empty / open / ...)".
+
+Plan such a task in THREE parts, IN THIS ORDER:
+
+  (A) REVEAL -- concrete stages (GRASP / LIFT / MOVE / PLACE / RETREAT) that expose the deciding information. Plan only enough to make the decision judgeable; do NOT assume the outcome.
+
+  (B) DECIDE -- EXACTLY ONE stage with "motion": "REASON". It performs no robot motion; it marks "stop and decide from a fresh look". Make it self-contained:
+        - "description": the COMPLETE decision rule. Write every case as "IF <visible condition> THEN <what the rest of the plan becomes>", and include the terminal case (what to do when no case applies or nothing is left to try). State each continuation in executable terms (grasp it, place it, set it aside, reveal the next one, stop). Name things by visible role, never by an index or count.
+        - "completion": the single thing that must be VISIBLE before the rule can be judged.
+        - "target" / "affordance": the region or object to inspect.
+
+  (C) GOAL -- ONE short placeholder stage naming the end goal, with the word "PLACEHOLDER" in its description, so the plan still parses before the checkpoint is reached.
+
+Checkpoint rules:
+  - Never make REASON the first or only stage; the reveal stages must come first so the deciding view exists when it is reached.
+  - Use EXACTLY ONE REASON unless the task has a second, independent decision.
+  - Do NOT enumerate candidates or add step counts / numbered loops; the checkpoint plans the rest when reached, from what is then visible.
+
+The rule must be COMPLETE and task-shaped -- it can be a one-shot choice or a repeating search, whatever the task needs. Two illustrations of a well-formed "description":
+  - "IF an object is visible in the area the lifted item uncovered THEN set the held item aside in a clear spot and grasp that object; IF that area is empty THEN return the held item and reveal another item not yet checked; IF every item has been checked and none hid an object THEN stop."
+  - "IF the bowl already holds the fruit THEN place the held lid onto the bowl; IF the bowl is empty THEN put the fruit into the bowl first, then place the lid."
+
+If the task IS fully determined from the current view, ignore this section and plan a normal linear plan with NO REASON stage.
+
+Return JSON ONLY.

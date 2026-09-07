@@ -1,0 +1,58 @@
+# mvtoken LoRA template - gemma4-E4B.
+# gemma4 needs transformers>=5.10, which cannot share Qwen3.5's env, so it uses a separate
+# venv: train.sh picks LF_VENV_GEMMA4 when it sees FAMILY=gemma4.
+#   CONFIG=train/configs/gemma4_e4b_lora.yaml GPU=0,1 bash train/scripts/train.sh
+
+### model
+model_name_or_path: google/gemma-4-E4B-it   # local weights: pass MODEL_PATH=/path/to/weights
+image_max_pixels: 65536    # 256x256
+trust_remote_code: true
+# flash_attn: fa2
+
+### method
+stage: sft
+do_train: true
+finetuning_type: lora
+freeze_vision_tower: true            # model_type=gemma4 freezes vision_tower and audio_tower
+freeze_multi_modal_projector: false
+
+### LoRA
+lora_rank: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target: all
+
+### dataset
+dataset: <FILL_ME>
+template: gemma4n            # the template E4B needs (larger sizes use `gemma4`)
+enable_thinking: false       # drop CoT; the thought span moves to the prompt side, no loss
+cutoff_len: 2048
+overwrite_cache: true        # LF's fingerprint only hashes path strings
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+### output
+output_dir: saves/gemma4-e4b/robot/<FILL_ME>    # relative -> train.sh pins it under train/
+logging_steps: 2
+save_steps: 200
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: wandb
+# wandb project/entity come from WANDB_PROJECT / WANDB_ENTITY, passed by train.sh.
+# Upstream has no wandb_entity yaml key, and `project` here is transformers' Trackio
+# field, not the wandb project.
+run_name: gemma4-e4b-robot-<FILL_ME>
+
+### train
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+num_train_epochs: 30.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+ddp_timeout: 180000000
+
+### distributed (ZeRO-2: E4B weights ~15GB, roomier than 12B's ~23GB)
+deepspeed: examples/deepspeed/ds_z2_config.json

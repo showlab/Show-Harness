@@ -1,0 +1,182 @@
+# AgileX Piper rig, fine-tuned mode: a small VLM fine-tuned on GUMI
+# demonstrations emits one action token per step. Single-arm:
+# scripts/run_real_mvtoken.py (reads robot.arm / the top-level z_floor_m); dual-arm:
+# scripts/run_real_dual_mvtoken.py (flattens the shared arms calibration per side).
+# Zero-shot counterpart: robot_piper.yaml.
+#
+# Layering (see robot_franka.yaml for the mechanism): per-arm calibration is
+# shared from configs/site/piper_arms.yaml; the optional layers carry the lab's
+# LoRA-server registry, internal endpoints, and the active experiment state,
+# and are absent from the public release.
+defaults:
+  - site/piper_arms.yaml
+  - {path: backends/internal.yaml, optional: true}
+  - {path: backends/lab_lora_servers.yaml, optional: true}
+overlays:
+  - {path: experiments/current_piper_ft.yaml, optional: true}
+
+# ----- Hardware target --------------------------------------------------------
+hardware: piper
+primitives_config: configs/primitives_piper.yaml
+
+# ----- Task -----------------------------------------------------------------
+task: "Pick up the tennis ball and place it in the bowl"
+
+# ----- VLM ------------------------------------------------------------------
+# The released adapters are defined in vlm_backends: below, so the default works as soon
+# as one is served. Use finetuned_local for YOUR own adapter (rename its `model:`).
+# backends/lab_lora_servers.yaml, when present, adds internal endpoints on top.
+vlm_backend: qwen3_5_2b
+
+# ----- Rollout --------------------------------------------------------------
+max_steps: 150
+
+# ----- Plugins ----------------------------------------------------------------
+# The MVTOKEN runners only consult auto_release (and smooth, via the controller);
+# everything below it belongs to the subgoal pipeline in scripts/run_real.py /
+# scripts/run_real_dual.py and stays OFF here. They are listed explicitly -- rather than
+# omitted -- so this file shows the same plugin surface as robot_piper.yaml and
+# one can be flipped on for a comparison run without hunting for its name.
+plugins:
+  # --- consulted by the MVTOKEN runners ---
+  auto_release: true   # auto-open the gripper when its closed width < empty_width_m
+  smooth: true         # interpolate each token into smooth_substeps setpoints
+  dagger: true         # live teleop override: take over mid-rollout with the collection keys
+                       # (needs the live-view window -- do NOT combine with --no-show)
+  # --- subgoal-pipeline plugins (scripts/run_real.py / scripts/run_real_dual.py); OFF for MVTOKEN ---
+  subgoal: false
+  proprioception: false
+  recovery: false
+  variable_step: false   # coarse step (coarse_step_m) when high (> high_above_table_m) or MV_UP
+  view_select: false     # dual: let the model pick WRIST vs FRONT guidance per step
+  mem_text: false        # put the last mem_text_len moves in the prompt
+  action_chunk: false    # action_chunk_step_num moves per VLM call
+  coords: false
+  mcq: false
+  deepplan: false
+  rotation: false
+  video_ref: false
+  affordance: false
+
+# ----- Models ---------------------------------------------------------------
+vlm:
+  base_url: http://localhost:8000/v1
+
+vlm_backends:
+  # ---- Fine-tuned action policies -----------------------------------------
+  # Serve one with:
+  #   MODEL=<base> FAMILY=<family> LORA=<adapter-name>=<path> bash scripts/serve_vlm.sh
+  # A profile's KEY is the short backend name you select (`vlm_backend:` above or
+  # --vlm-backend); its `model:` is the adapter name the server registered, which
+  # for the released checkpoints is <key>_showharness_ft. Keeping them separate lets
+  # every config name the same backend while pointing at its own weights. See
+  # docs/finetuned.md for the base model and FAMILY each one needs.
+  finetuned_local:
+    # Your own adapter. Rename `model` to whatever you registered.
+    provider: vllm
+    model: your_adapter_name
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false            # match the no-think training template
+  qwen3_5_2b:
+    provider: vllm
+    model: qwen3_5_2b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_4b:
+    provider: vllm
+    model: qwen3_5_4b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  qwen3_5_9b:
+    provider: vllm
+    model: qwen3_5_9b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  internvl3_5_2b:
+    provider: vllm
+    model: internvl3_5_2b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  gemma4_e4b:
+    provider: vllm
+    model: gemma4_e4b_showharness_ft
+    max_tokens: 256
+    reasoning_cot: false
+    chat_template_kwargs:
+      enable_thinking: false
+  # ---- Hosted baseline -------------------------------------------------------
+  gemini:
+    provider: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    model: gemini-3.1-flash-lite # gemini-flash-latest | gemini-2.5-flash | gemini-3.1-flash-lite
+    api_key_env: GEMINI_API_KEY
+    max_tokens: 2048
+    reasoning_cot: true
+    max_retries: 10
+    reasoning_effort: medium
+
+# ----- Robot connection -------------------------------------------------------
+robot:
+  arm: left                                # topic namespace: /puppet/*_left
+  open_width_m: 0.07
+  front_camera_topic: "/camera_f/color/image_raw"
+  wrist_camera_topic: "/camera_l/color/image_raw"
+  settle_steps: 4
+  settle_dt_s: 0.05
+  gripper_settle_s: 1.5
+  gripper_min_settle_s: 0.3
+
+# ----- View geometry ----------------------------------------------------------
+is_ego: true
+motion_frame: wrist  # base | wrist
+
+# ----- Safety rules -----------------------------------------------------------
+# !! CALIBRATE BEFORE AUTONOMOUS RUNS !!
+enable_z_floor: true
+z_floor_m: 0.19443
+empty_width_m: 0.005
+open_width_m: 0.07
+gripper_color: ""
+
+# ----- Step calibration (Piper physical setup) -------------------------
+high_above_table_m: 0.15   # gap (eef_z - z_floor)
+coarse_step_m: 0.04        # far/high/lifting step
+fine_step_m: 0.02          # normal per-token translation
+up_step_m: 0.02            # dedicated MV_UP lift distance
+action_chunk_step_num: 3
+mem_text_len: 5
+# Only read when the matching plugin above is switched on (kept here so enabling
+# one is a single-line edit). Values mirror robot_piper.yaml.
+affordance_verify_rounds: 1
+video_ref_frames: 8
+# video_ref_path: /path/to/demo.mp4
+
+# ----- Poses ------------------------------------------------------------------
+home_joints: [-0.44299, 0.85654, -0.9814, 0.02017, 0.92179, 0.0]
+move_to_home_on_init: true
+start_joints: [-0.03199, 0.03984, -0.00408, -0.02617, 0.29777, -0.02242]
+
+# ----- Dual-arm (scripts/run_real_dual_mvtoken.py) ------------------------------------
+# The SINGLE-arm runner (scripts/run_real_mvtoken.py) ignores the arms calibration: it
+# reads robot.arm / robot.wrist_camera_topic / the top-level z_floor_m above.
+# The DUAL runner flattens the shared site/piper_arms.yaml calibration per arm
+# via core.piper.config.arm_config(cfg, side), which HARD-FAILS without an
+# `arms:` block ("the Piper rig is dual-arm").
+#
+# begin_pose selects which NAMED pose under arms.<side>.poses both arms home
+# to; arm_config resolves it into each arm's begin_joints. List them with
+# go_begin.sh --list.
+move_to_begin_on_init: true
+begin_pose: natural
+begin_time_s: 3.0
+mirror_capture: true

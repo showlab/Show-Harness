@@ -1,0 +1,23 @@
+Controller-prompt fragments owned by the proprioception plugin (see plugins/prompt_text.py
+for the [section] convention; {placeholders} are filled by plugin.py via str.replace).
+
+[block]
+The gripper is {gap_cm} cm above the table; {step_sizes}. {hint}
+
+[step_sizes_fine]
+each step moves ~{fine_cm} cm
+
+[step_sizes_coarse]
+each step moves ~{fine_cm} cm ({coarse_cm} cm)
+
+[hint_descend]
+If height > {high_cm} cm, MV_DOWN first.
+
+[hint_holding]
+Holding an object: lift until clear of the table; descend only to place.
+
+[descend_stall]
+Last MV_DOWN lowered {moved_cm} of {commanded_cm} cm -> already in contact, do NOT MV_DOWN again
+
+[gripper]
+- Proprioception: gripper width is {width_cm} cm{command_text}.

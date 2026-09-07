@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Show-Harness Web Teleop</title>
+<style>
+  /* Light theme shared with the dual-arm UI (:8620). This is the
+     BUTTON UI: one arm, and every press EXECUTES IMMEDIATELY -- there is no queue and no
+     commit step (that model belongs to the dual UI, where a step is a synchronized pair). */
+  :root{
+    --ink:#16191d; --ink2:#464c54; --dim:#8b929b;
+    --line:#e5e8ec; --soft:#f7f9fb; --soft2:#eef1f5;
+    --ok:#4a7a38; --ok-bg:#eef5ea; --ok-line:#d6e6cd;
+    --hot:#c47c21; --hot-bg:#fdf4e8; --hot-line:#f0dcbe;
+    --bad:#a8413f; --bad-bg:#fdf5f5; --bad-line:#f0cfce;
+    --btn:#eef1f6; --btn-hover:#e2e7ee; --btn-line:#8695a7; --btn-line-hover:#6d7d90;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --kw:108px;   /* one key width, shared by every cluster so the columns line up */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#fff;color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh}
+  body:focus{outline:none}
+  button{font:inherit;cursor:pointer;color:inherit}
+  #app{display:flex;flex-direction:column;gap:10px;min-height:100vh;padding:12px;
+    max-width:1700px;margin:0 auto}
+
+  /* Every band is its own rounded module on the white page. */
+
+  /* ---------- task bar ---------- */
+  /* Same shape as the dual UI's topbar: label, the task itself, right-aligned meta.
+     Retargeting mid-session stays, but folded behind EDIT so the bar reads as one line
+     instead of a form. The input replaces the task text in place -- no layout jump. */
+  #topbar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px;
+    border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+  #topbar .lb{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;
+    flex:0 0 auto}
+  #task-text{font-size:17px;font-weight:600;color:var(--ink);flex:1 1 auto;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #task-form{flex:1 1 auto;display:none;gap:6px;align-items:center}
+  #task-form.on{display:flex}
+  #task-input{flex:1 1 auto;min-width:0;background:#fff;color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:15px;
+    font-family:inherit;font-weight:600}
+  #task-input:focus{outline:none;border-color:var(--hot)}
+  .tbtn{flex:0 0 auto;background:#fff;color:var(--ink2);border:1px solid var(--line);
+    border-radius:8px;padding:6px 13px;font-size:13px;font-weight:600}
+  .tbtn:hover{background:var(--soft2)}
+  .tbtn:disabled{opacity:.4;cursor:not-allowed}
+  #rec-pill{flex:0 0 auto;font-size:14px;font-weight:700;padding:5px 13px;border-radius:999px;
+    background:var(--soft2);color:var(--dim);border:1px solid var(--line);white-space:nowrap}
+  #rec-pill.rec{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-line)}
+
+  /* ---------- camera views ---------- */
+  #views{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:220px}
+  .view{position:relative;background:var(--soft2);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:0}
+  .view img{width:100%;height:100%;object-fit:contain}
+  .view .tag{position:absolute;top:10px;left:10px;font-size:16px;font-weight:700;letter-spacing:.05em;
+    background:#fffffff2;border:1px solid var(--line);padding:5px 12px;border-radius:9px;color:var(--ink2)}
+
+  /* ---------- result line + banner ---------- */
+  #message{flex:0 0 auto;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;
+    font-family:var(--mono);font-size:16px;font-weight:600;white-space:nowrap;min-height:48px;
+    overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  #message.err{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-line)}
+  #message.good{background:var(--hot-bg);color:var(--hot);border-color:var(--hot-line)}
+  #banners{flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+  .banner{padding:11px 16px;font-size:15px;font-weight:700;display:none;border:1px solid;border-radius:12px}
+  .banner.on{display:block}
+  #banner-done{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+
+  /* ---------- control deck ---------- */
+  /* Keys are a FIXED width, so a cluster never stretches its buttons to fill the row --
+     a 300 px wide "FWD" is unreadable and unaimable. Each concern gets its own column:
+     directions (3-wide cross), lift, rotate; the recording column takes what is left. */
+  #deck{flex:0 0 auto;display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+  .cluster{flex:0 0 auto;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+  .cluster h3{margin:0 0 10px;font-size:12px;letter-spacing:.1em;font-weight:700;color:var(--ink2);
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap}
+  .cluster h3 .sub{font-size:11px;font-weight:600;color:var(--dim);letter-spacing:0}
+
+  /* WASD proper: FWD alone on top, LEFT/BACK/RIGHT underneath - nothing in the middle. */
+  .wasd{display:grid;grid-template-columns:repeat(3,var(--kw));gap:8px}
+  .stack{display:grid;grid-template-columns:var(--kw);gap:8px}
+
+  /* One neutral ground for every action key; the border carries the contrast.
+     .pressed stays LAST so a held key reads amber. */
+  .key{min-height:58px;border:1px solid var(--btn-line);border-radius:10px;background:var(--btn);
+    color:#232930;font-family:var(--mono);font-size:18px;font-weight:700;position:relative;
+    transition:.12s;user-select:none;-webkit-user-select:none;touch-action:none;
+    display:flex;align-items:center;justify-content:center}
+  .key:hover{background:var(--btn-hover);border-color:var(--btn-line-hover)}
+  .key:active{transform:translateY(1px)}
+  .key .kk{position:absolute;left:8px;bottom:5px;font-size:11px;font-weight:700;font-style:normal;
+    color:var(--btn-line-hover);letter-spacing:.04em}
+  .key.pressed{background:#fadfb8;border-color:var(--hot);color:#6f4310;
+    box-shadow:inset 0 0 0 1px #c47c2159}
+  .key.pressed .kk{color:#96631d}
+
+  /* ---------- recording column: gripper + start/stop ---------- */
+  /* Takes the width the fixed-size key clusters leave over, with a floor: at 1fr 1fr
+     the STOP label ("STOP & SAVE") needs ~150 px before it starts wrapping. */
+  #centre{flex:0 1 380px;min-width:330px;margin-left:auto;
+    display:flex;flex-direction:column;gap:10px}
+  #btn-grasp{flex:1 1 auto;min-height:112px;border-radius:12px;border:2px solid var(--btn-line);
+    background:var(--btn);color:#232930;font-size:20px;font-weight:800;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+  #btn-grasp:hover{background:var(--btn-hover)}
+  #btn-grasp .sub{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink2)}
+  #btn-grasp.closed{border-color:var(--hot);background:#fadfb8;color:#6f4310}
+  #btn-grasp.closed:hover{background:#f7d3a2}
+  #btn-grasp.closed .sub{color:#6f4310}
+  .recrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .recrow button{min-height:52px;padding:0 10px;border-radius:10px;border:1px solid var(--btn-line);
+    background:var(--btn);color:#232930;font-size:15px;font-weight:700;white-space:nowrap}
+  .recrow button:hover{background:var(--btn-hover);border-color:var(--btn-line-hover)}
+  #btn-start{color:#83322f}
+  #btn-start:hover{border-color:#cd7876;background:#fae3e2}
+  #btn-stop{border-color:#6ba153;color:#356426;background:#e3eeda}
+  #btn-stop:hover{background:#d6e6cb}
+  #btn-stop.disabled{border-color:var(--line);background:var(--soft2);color:var(--dim);cursor:not-allowed}
+  #btn-cancel{grid-column:1 / -1;min-height:40px;font-size:14px;font-weight:600;background:var(--btn);
+    border:1px solid var(--btn-line);border-radius:10px;color:#732624}
+  #btn-cancel:hover{border-color:#cd7876;background:#fae3e2}
+  #btn-cancel.confirm{border-color:#c06d6b;color:#732624;background:#f6d8d6}
+
+  /* ---------- command line ---------- */
+  /* The human face of /api/step: a whole sequence in one submit, same grammar an agent
+     posts ("w*3 a g" or "MV_FWD*3 GRASP"). Single tokens still go through /api/move. */
+  #cmdbar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px;
+    border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+  #cmdbar .lb{font-size:11px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;
+    flex:0 0 auto}
+  #cmd{flex:1 1 auto;min-width:0;background:#fff;color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:15px}
+  #cmd:focus{outline:none;border-color:var(--hot)}
+  #cmdbar .tbtn{padding:8px 16px}
+
+  /* ---------- status strip ---------- */
+  #status{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px}
+  .st{display:flex;align-items:baseline;gap:7px;padding:7px 12px;border:1px solid var(--line);
+    border-radius:10px;background:var(--soft);font-size:13px;color:var(--dim)}
+  .st .lb{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .st b{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)}
+  .okmark{color:var(--ok)} .badmark{color:var(--dim)}
+
+  /* ---------- help overlay ---------- */
+  #help{position:fixed;inset:0;background:#16191d59;z-index:20;display:none;
+    align-items:center;justify-content:center;padding:24px}
+  #help.on{display:flex}
+  #help-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px 26px;
+    max-width:820px;max-height:100%;overflow:auto;box-shadow:0 24px 60px #16191d26}
+  #help h1{font-size:17px;margin:0 0 4px;letter-spacing:.04em}
+  #help p{font-size:13px;color:var(--ink2);margin:0 0 12px;line-height:1.6}
+  #help table{border-collapse:collapse;font-size:13px;width:100%}
+  #help td{padding:4px 12px 4px 0;vertical-align:top;color:var(--ink2)}
+  #help td.k{white-space:nowrap;width:1%}
+  #help h2{font-size:11px;letter-spacing:.12em;color:var(--dim);margin:16px 0 6px;font-weight:700}
+  #help code{font-family:var(--mono);color:#96631d}
+  kbd{background:var(--btn);color:#232930;border:1px solid var(--btn-line);border-bottom-width:2px;
+    border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:12px;font-weight:600}
+
+  @media(max-width:1100px){#centre{flex:1 1 100%;order:-1}
+    #views{grid-template-columns:1fr;min-height:0}}
+</style>
+</head>
+<body tabindex="-1">
+<div id="app">
+
+  <div id="topbar">
+    <span class="lb">Task</span>
+    <span id="task-text">connecting…</span>
+    <form id="task-form">
+      <input id="task-input" type="text" placeholder="New task description" autocomplete="off"
+             spellcheck="false" aria-label="Task description">
+      <button class="tbtn" id="btn-task" type="submit">Set</button>
+    </form>
+    <button class="tbtn" id="btn-edit" type="button">Edit</button>
+    <span id="rec-pill">IDLE</span>
+  </div>
+
+  <div id="views">
+    <div class="view"><span class="tag">AGENT VIEW</span>
+      <img id="cam-agent" src="/stream/agentview" alt="Agentview live camera stream"></div>
+    <div class="view"><span class="tag">WRIST VIEW</span>
+      <img id="cam-wrist" src="/stream/wrist" alt="Wrist view live camera stream"></div>
+  </div>
+
+  <div id="message">ready — press START, then drive the arm; every press records and moves</div>
+  <div id="banners">
+    <div class="banner" id="banner-done">&#10003; TASK DONE — click STOP &amp; SAVE</div>
+  </div>
+
+  <div id="deck">
+    <div class="cluster">
+      <h3><span>MOVE</span><span class="sub">2 cm · hold to repeat</span></h3>
+      <div class="wasd">
+        <span></span>
+        <button class="key move" id="key-w" data-token="MV_FWD">FWD<i class="kk">W</i></button>
+        <span></span>
+        <button class="key move" id="key-a" data-token="MV_LEFT">LEFT<i class="kk">A</i></button>
+        <button class="key move" id="key-s" data-token="MV_BACK">BACK<i class="kk">S</i></button>
+        <button class="key move" id="key-d" data-token="MV_RIGHT">RIGHT<i class="kk">D</i></button>
+      </div>
+    </div>
+
+    <div class="cluster">
+      <h3><span>LIFT</span></h3>
+      <div class="stack">
+        <button class="key move" id="key-up" data-token="MV_UP">UP<i class="kk">R / &uarr;</i></button>
+        <button class="key move" id="key-down" data-token="MV_DOWN">DOWN<i class="kk">F / &darr;</i></button>
+      </div>
+    </div>
+
+    <div class="cluster">
+      <h3><span>ROTATE</span></h3>
+      <div class="stack">
+        <button class="key move" id="key-z" data-token="ROTATE_CCW">&#8634; CCW<i class="kk">Z</i></button>
+        <button class="key move" id="key-x" data-token="ROTATE_CW">&#8635; CW<i class="kk">X</i></button>
+      </div>
+    </div>
+
+    <div id="centre">
+      <button id="btn-grasp">
+        <span>Grasp</span>
+        <span class="sub">Space</span>
+      </button>
+      <div class="recrow">
+        <button id="btn-start">&#9679; START</button>
+        <button id="btn-stop" class="disabled">&#9632; STOP &amp; SAVE</button>
+      </div>
+      <div class="recrow">
+        <button id="btn-cancel">CANCEL (discard + home)</button>
+      </div>
+    </div>
+  </div>
+
+  <form id="cmdbar">
+    <span class="lb">Sequence</span>
+    <input id="cmd" type="text" autocomplete="off" spellcheck="false"
+           placeholder="w*3 a g   ·   MV_FWD*3 GRASP   —  one submit, executed in order"
+           aria-label="Action sequence">
+    <button class="tbtn" id="btn-cmd" type="submit">Run</button>
+  </form>
+
+  <div id="status">
+    <span class="st"><span class="lb">Rec</span><b id="st-rec">-</b></span>
+    <span class="st"><span class="lb">Steps</span><b id="st-steps">0</b></span>
+    <span class="st"><span class="lb">Gripper</span><b id="st-grip">OPEN</b></span>
+    <span class="st"><span class="lb">Picked</span><b id="st-pick" class="badmark">&#10007;</b></span>
+    <span class="st"><span class="lb">Placed</span><b id="st-place" class="badmark">&#10007;</b></span>
+    <span class="st"><span class="lb">Task done</span><b id="st-done" class="badmark">&#10007;</b></span>
+    <span class="st"><span class="lb">EEF</span><b id="st-pos">-</b></span>
+    <span class="st"><span class="lb">Saved</span><b id="st-saved">0</b></span>
+  </div>
+
+</div>
+
+<div id="help">
+  <div id="help-card">
+    <h1>WEB TELEOP REFERENCE</h1>
+    <p>Press <kbd>?</kbd> or <kbd>Esc</kbd> to close. <b>Every press executes immediately</b> —
+       there is nothing to queue and nothing to commit. Each step records the
+       <code>(observation, action)</code> pair FIRST, then moves, so what the policy will see at
+       inference is exactly what was saved. Hold a key or button to repeat.</p>
+
+    <h2>DIRECTIONS (both views)</h2>
+    <p>FWD = image up · BACK = image down · LEFT = image left · RIGHT = image right · 2 cm per step.
+       In the wrist view the gripper is fixed at the centre and the world moves under it.</p>
+
+    <h2>KEYBOARD (equivalent to the buttons)</h2>
+    <table>
+      <tr><td class="k"><kbd>W</kbd><kbd>S</kbd><kbd>A</kbd><kbd>D</kbd></td><td>forward / back / left / right</td></tr>
+      <tr><td class="k"><kbd>R</kbd><kbd>F</kbd> or <kbd>&uarr;</kbd><kbd>&darr;</kbd></td><td>up / down</td></tr>
+      <tr><td class="k"><kbd>Z</kbd><kbd>X</kbd></td><td>rotate ccw / cw</td></tr>
+      <tr><td class="k"><kbd>Space</kbd></td><td>gripper — sends whatever the big button says (<code>GRASP</code> or <code>RELEASE</code>); already-satisfied is a no-op, never a reversal</td></tr>
+      <tr><td class="k"><kbd>P</kbd></td><td>start / stop recording</td></tr>
+      <tr><td class="k"><kbd>C</kbd><kbd>C</kbd></td><td>cancel — press twice to discard and home</td></tr>
+    </table>
+
+    <h2>READING THE PAGE</h2>
+    <table>
+      <tr><td class="k">result line</td><td>the server's reply to the last action; amber for a note, red for a refusal</td></tr>
+      <tr><td class="k">Picked</td><td>a GRASP that catches nothing auto-releases and this stays &#10007; — re-align, then retry</td></tr>
+      <tr><td class="k">green banner</td><td>task complete — STOP &amp; SAVE is allowed now, and only now</td></tr>
+      <tr><td class="k">REC pill</td><td>rollout name and live step count while recording</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const REPEAT_MS = 170;          // hold-to-repeat cadence, mirrors --move-interval
+const CANCEL_LABEL = "CANCEL (discard + home)";
+let inflight = false;           // one motion command at a time from this client
+
+async function post(cmd, payload) {
+  try {
+    const r = await fetch("/api/" + cmd, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    });
+    const data = await r.json();
+    if (data.message) showMessage(data.message, !data.ok);
+    if (data.state) applyState(data.state);
+    return data;
+  } catch (e) {
+    showMessage("Request failed: " + e, true);
+    return { ok: false };
+  }
+}
+
+async function sendMove(token) {
+  if (inflight) return;
+  inflight = true;
+  try { await post("move", { token }); } finally { inflight = false; }
+}
+
+// The result band carries the state in its background, not just its text colour.
+function showMessage(text, isErr) {
+  const el = $("message");
+  el.textContent = text;
+  el.className = isErr ? "err" : "good";
+}
+
+// -- movement keys: click = one step, hold = repeat --------------------------
+document.querySelectorAll(".move").forEach((btn) => {
+  const token = btn.dataset.token;
+  let timer = null;
+  const start = (ev) => {
+    ev.preventDefault();
+    btn.classList.add("pressed");
+    sendMove(token);
+    timer = setInterval(() => sendMove(token), REPEAT_MS);
+  };
+  const stop = () => {
+    btn.classList.remove("pressed");
+    if (timer) { clearInterval(timer); timer = null; }
+  };
+  btn.addEventListener("pointerdown", start);
+  btn.addEventListener("pointerup", stop);
+  btn.addEventListener("pointerleave", stop);
+  btn.addEventListener("pointercancel", stop);
+});
+
+// Space / the button send the EXPLICIT token the button is showing, not a blind toggle.
+// /api/step's GRASP and RELEASE are idempotent, so acting on a stale view costs at most a
+// no-op -- it can never do the opposite of what the label promised. The result line then
+// names the token that actually ran.
+$("btn-grasp").addEventListener("click", () => {
+  post("step", { token: (lastState && lastState.next_gripper) || "GRASP" });
+});
+$("btn-start").addEventListener("click", () => post("start"));
+$("btn-stop").addEventListener("click", () => post("stop"));
+
+// -- task retarget (refused by the backend while recording) -------------------
+// The form is folded away by default and takes the task text's place when opened, so the
+// bar stays one line either way.
+function editTask(on) {
+  $("task-form").classList.toggle("on", on);
+  $("task-text").style.display = on ? "none" : "";
+  if (on) { $("task-input").value = lastState ? (lastState.task_text || "") : ""; $("task-input").focus(); }
+}
+$("btn-edit").addEventListener("click", () => editTask(!$("task-form").classList.contains("on")));
+$("task-input").addEventListener("keydown", (e) => {
+  if (e.code === "Escape") { e.stopPropagation(); editTask(false); }
+});
+$("task-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("task-input");
+  const text = input.value.trim();
+  if (!text) { showMessage("Type a task description first", true); return; }
+  const data = await post("task", { task: text });
+  if (data.ok) { input.value = ""; input.blur(); editTask(false); }
+  poll();
+});
+
+// Cancel needs a second click within 3 s to actually discard.
+let cancelArmed = null;
+$("btn-cancel").addEventListener("click", () => {
+  const btn = $("btn-cancel");
+  if (cancelArmed) {
+    clearTimeout(cancelArmed); cancelArmed = null;
+    btn.classList.remove("confirm");
+    btn.textContent = CANCEL_LABEL;
+    post("cancel");
+  } else {
+    btn.classList.add("confirm");
+    btn.textContent = "Click again to discard";
+    cancelArmed = setTimeout(() => {
+      cancelArmed = null;
+      btn.classList.remove("confirm");
+      btn.textContent = CANCEL_LABEL;
+    }, 3000);
+  }
+});
+
+// -- command line: the same /api/step an agent posts ---------------------------
+$("cmdbar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("cmd");
+  const text = input.value.trim();
+  if (!text) { showMessage("Type a sequence first, e.g. w*3 a g", true); return; }
+  await post("step", { command: text });
+  input.select();
+});
+
+// -- help overlay -------------------------------------------------------------
+function toggleHelp(on) { $("help").classList.toggle("on", on); }
+$("help").addEventListener("click", () => toggleHelp(false));
+
+// -- physical keyboard mirrors the on-screen keys ----------------------------
+const KEYMAP = {
+  KeyW: "key-w", KeyA: "key-a", KeyS: "key-s", KeyD: "key-d",
+  ArrowUp: "key-up", ArrowDown: "key-down", ArrowLeft: "key-a", ArrowRight: "key-d",
+  KeyR: "key-up", KeyF: "key-down",  // R/F = up/down, unified with DAGGER + the pygame collector
+  KeyZ: "key-z", KeyX: "key-x",
+};
+const kbTimers = {};
+function isTyping(e) {
+  const t = e.target;
+  return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+}
+document.addEventListener("keydown", (e) => {
+  if (e.repeat || isTyping(e)) return;   // never hijack keys typed into the task box
+  if (e.key === "?" || e.code === "Slash" && e.shiftKey) {
+    e.preventDefault(); toggleHelp(!$("help").classList.contains("on")); return;
+  }
+  if (e.code === "Escape") { toggleHelp(false); return; }
+  if (e.code === "Space") { e.preventDefault(); $("btn-grasp").click(); return; }
+  if (e.code === "KeyP") {
+    e.preventDefault();
+    (lastState && lastState.recording ? $("btn-stop") : $("btn-start")).click();
+    return;
+  }
+  if (e.code === "KeyC") { e.preventDefault(); $("btn-cancel").click(); return; }
+  const id = KEYMAP[e.code];
+  if (!id) return;
+  e.preventDefault();
+  const btn = $(id);
+  btn.classList.add("pressed");
+  sendMove(btn.dataset.token);
+  kbTimers[e.code] = setInterval(() => sendMove(btn.dataset.token), REPEAT_MS);
+});
+document.addEventListener("keyup", (e) => {
+  const id = KEYMAP[e.code];
+  if (!id) return;
+  $(id).classList.remove("pressed");
+  if (kbTimers[e.code]) { clearInterval(kbTimers[e.code]); delete kbTimers[e.code]; }
+});
+
+// -- state polling ------------------------------------------------------------
+let lastState = null;
+function mark(el, on) {
+  el.textContent = on ? "✓" : "✗";
+  el.className = on ? "okmark" : "badmark";
+}
+function applyState(s) {
+  lastState = s;
+  $("task-text").textContent = s.task_text || "-";
+  const pill = $("rec-pill");
+  if (s.recording) {
+    pill.textContent = "● REC " + (s.rollout || "") + " · step " + s.steps;
+    pill.classList.add("rec");
+  } else {
+    pill.textContent = "IDLE";
+    pill.classList.remove("rec");
+  }
+  // The task is locked for the duration of a rollout (the backend refuses it too).
+  $("task-input").disabled = !!s.recording;
+  $("btn-task").disabled = !!s.recording;
+  $("btn-edit").disabled = !!s.recording;
+  $("btn-edit").textContent = s.recording ? "Locked" : "Edit";
+  if (s.recording) editTask(false);
+  $("st-rec").textContent = s.recording ? (s.rollout || "recording") : "idle";
+  $("st-steps").textContent = s.steps;
+  $("st-grip").textContent = s.gripper_closed ? "CLOSED" : "OPEN";
+  // Only the label span: the button also holds its key hint in .sub.
+  $("btn-grasp").firstElementChild.textContent =
+      s.next_gripper === "RELEASE" ? "Release" : "Grasp";
+  $("btn-grasp").classList.toggle("closed", s.gripper_closed);
+  mark($("st-pick"), s.holding || s.picked > 0);
+  mark($("st-place"), s.sim ? s.task_done : s.placed > 0);
+  mark($("st-done"), s.task_done);
+  $("st-pos").textContent = s.ee_pos ? s.ee_pos.join(", ") : "-";
+  $("st-saved").textContent = s.rollouts_saved;
+  // Stop is gated on task_done; the banner says so instead of hiding it in the strip.
+  $("btn-stop").classList.toggle("disabled", !s.can_stop);
+  $("banner-done").classList.toggle("on", !!s.task_done);
+  if (s.message) showMessage(s.message, false);
+}
+async function poll() {
+  try {
+    const r = await fetch("/api/state");
+    applyState(await r.json());
+  } catch (e) { /* server restarting; keep polling */ }
+}
+setInterval(poll, 500);
+poll();
+
+// MJPEG streams occasionally drop when the server restarts -- auto-reconnect.
+for (const id of ["cam-agent", "cam-wrist"]) {
+  $(id).addEventListener("error", () => {
+    setTimeout(() => { $(id).src = $(id).src.split("?")[0] + "?t=" + Date.now(); }, 1500);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+Controller-prompt fragments owned by the action-type ablation plugin (see
+plugins/prompt_text.py for the [section] convention; {placeholders} are filled by
+plugin.py via str.replace). The four settings:
+  off          -> setting 1: MV_* tokens + per-token direction explanations (baseline)
+  bare         -> setting 2: MV_* tokens, NO explanation of what any token does
+  letters      -> setting 3: opaque symbols (ACT_A..) WITH direction explanations
+  letters_blind-> setting 4: opaque symbols; TOLD the range (the six symbols ARE
+                  up/down/left/right/forward/backward) but NOT the mapping. The model
+                  blind-picks; on the NEXT step the frame captured BEFORE that action
+                  is attached, the model judges the effect from the before/after pair
+                  and fills a symbol->effect table; recorded symbols can be chosen
+                  directly, otherwise it keeps blind-picking among the unknowns.
+Symbols are ACT_A style rather than bare A/B.
+
+[bare_direction]
+DIRECTION:
+Choose exactly one movement token from the action list at the end. No description of what any movement token does is provided.
+
+[blind_direction]
+DIRECTION:
+ACT_A, ACT_B, ACT_C, ACT_D, ACT_E, ACT_F are the gripper's six movement directions -- up, down, left, right, forward, backward -- exactly one symbol per direction, but WHICH symbol is WHICH direction is NOT told.
+<<ACTION_TABLE>>
+<<BLIND_REVIEW>>
+How to choose:
+- If a recorded symbol matches the direction you need now, choose it directly.
+- Otherwise pick one of the (unknown) symbols at random to try -- a blind pick is expected, not an error.
+All other actions (e.g. GRASP, RELEASE, DONE) keep their usual meaning.
+
+[blind_review]
+REVIEW YOUR LAST ACTION: you just executed {symbol}. The LAST attached image is the AgentView frame captured BEFORE {symbol}; the first image is the current AgentView (AFTER it). Compare the two frames, judge what {symbol} did to the gripper, and update your record with exactly one line:
+NOTE[{symbol}]: <one short clause on what it did>
+
+[letters_contract]
+Choose exactly one action:
+{actions}
+Return JSON only: {"decision":"ONE_ACTION","reasoning":"one visual sentence"}
+
+[blind_contract]
+Choose exactly one action:
+{actions}
+Return JSON only: {"decision":"ONE_ACTION","reasoning":"one visual sentence; when a REVIEW is requested, include its NOTE[...] line"}
+
+[table_header]
+YOUR ACTION RECORDS so far (written by you in earlier steps; "(unknown)" = never tried or not yet described):

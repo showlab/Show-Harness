@@ -1,0 +1,15 @@
+# Serving environment (.venv-vllm): vLLM only, in its own venv -- it drags in a full
+# torch/CUDA stack and holds transformers where the harness does not want it. These are the
+# versions the released adapters are served under; each pin is a bug worked around.
+#
+#   bash scripts/setup.sh serve
+
+# gemma4 E4B floor: older vLLM lacks the architecture, and its o_proj head_dim differs from
+# the other projections (vllm PR #44429). qwen3_5 / internvl3_5 serve fine below this.
+vllm==0.24.0
+transformers==5.12.1      # vLLM asks only for >=5.5.3; matches the gemma4 training venv
+huggingface-hub==1.17.0   # the tested version; no known incompatibility
+
+# No fastapi pin: vllm==0.24.0 needs >=0.133, and fastapi 0.130+ made instrumentator 8.0.0
+# throw on every request (trallnag/prometheus-fastapi-instrumentator#371, fixed in 8.0.1).
+prometheus-fastapi-instrumentator>=8.0.1

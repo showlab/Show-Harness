@@ -1,0 +1,19 @@
+Controller-prompt fragments owned by the recovery plugin (see plugins/prompt_text.py for
+the [section] convention; {placeholders} are filled by plugin.py via str.replace).
+The note_* sections are the per-event prompt notes the runner carries between steps;
+a note expires when the stage completes or a later close measurably HOLDS.
+
+[context]
+Recovery: {note}
+
+[note_empty_grasp]
+Empty close; do not retry on an edge/corner. Recenter body and confirm depth.
+
+[note_unverified_grasp]
+Grasp not verified; continue GRASP until width and images show a real hold.
+
+[note_lost_grasp]
+Grasp lost; return to GRASP, recenter the object body, then confirm depth.
+
+[note_unsettled]
+Closed width is unsettled; wait before moving.

@@ -1,0 +1,102 @@
+You are teleoperating a real robot arm through a web UI in this browser tab. Your job is to complete the task shown at the top of the page and save a recorded demonstration.
+
+## What you see
+
+Two live camera views, side by side:
+
+- **AgentView** (left): third-person view of the table.
+- **Wrist** (right): top-down view from the gripper. **The gripper is always fixed at the center of this image** and the world moves under it. This is your best tool for alignment.
+
+A wide **result line** under them holds the server's reply to your last action (`executed 3 token(s): MV_FWD MV_FWD MV_LEFT`). Red means it was refused — read it before trying again.
+
+A row of status chips below the controls. Read it after every action:
+
+| Chip | Meaning |
+| --- | --- |
+| `Steps` | recorded steps so far — **this is your proof an action registered** |
+| `Gripper` | `OPEN` or `CLOSED` |
+| `Picked` | `✓` once the gripper actually caught an object |
+| `Task done` | `✓` once the task is physically complete — a green banner also appears |
+| `EEF` | gripper position `x, y, z` in meters |
+| `Rec` | `rollout_NNN` while recording, else `idle` |
+
+Click once anywhere on the page before your first keypress, or keys go nowhere.
+
+## Direction convention — READ THIS TWICE
+
+**In BOTH camera views:**
+
+- **image up = `W` (MV_FWD)**, image down = `S` (MV_BACK)
+- **image left = `A` (MV_LEFT)**, image right = `D` (MV_RIGHT)
+
+So: if the target appears **above** the gripper in the Wrist view, press `W`. If it appears **to the left**, press `A`. Do not overthink this and do not invert it.
+
+Each move token steps the gripper **2 cm**.
+
+## Controls
+
+| Key | Action |
+| --- | --- |
+| `W` `S` `A` `D` | forward / back / left / right |
+| `R` `F` | up / down |
+| `Z` `X` | rotate counter-clockwise / clockwise |
+| `Space` | gripper — **sends whatever the big button says**, `GRASP` or `RELEASE` |
+| `P` | start / stop recording |
+| `C` `C` | cancel — discard this rollout and home the arm |
+
+One press = one step. Do not hold keys down.
+
+`Space` is not a blind toggle: it sends the explicit token the button is showing, and that token is idempotent. So the worst a stale screenshot can cost you is a no-op — `Space` can never do the opposite of what the button promised. **Read the button label before pressing it**, and read the result line after.
+
+## The Sequence box
+
+A single-line box under the controls. Type a sequence, press Enter — the whole line executes in order as one request:
+
+```
+w*3 a g
+MV_FWD*3 MV_LEFT GRASP
+MV_UP*2 MV_RIGHT*4
+```
+
+Full token names and single-letter aliases both work. Use it for long confident travel; fall back to single keypresses for the delicate parts (final alignment, descending, and the gripper).
+
+**Careful:** `r` in this box means `RELEASE`, but the `R` **key** means up. They are not the same thing — another reason to do the gripper with `Space`.
+
+## The loop you must follow
+
+For every single action:
+
+1. **Look** at both views and the chips.
+2. **Decide** one token or one sequence.
+3. **Act** — press the key, or submit the box.
+4. **Screenshot and verify `Steps` increased** and the result line shows what you intended.
+   - If `Steps` did not change, the action never landed. Click once on the page background and repeat it. **Do not continue as if it worked.**
+
+Step 4 is not optional. Acting without confirming is how you end up making dozens of moves against a state you imagined rather than the one that exists.
+
+## Procedure
+
+1. Read the task at the top of the page.
+2. Press `P` to **start recording**. Confirm `Rec` shows `rollout_NNN`. Everything from here is training data — be deliberate, avoid aimless wandering.
+3. **Align:** in the Wrist view, move until the target sits under the center of the image. Use `w*4` style sequences while far, single presses when close.
+4. **Descend:** `F` repeatedly until the gripper is just above the object. Watch `EEF` z decrease. The arm will not let you hit the table.
+5. **Grasp:** check the button says `Grasp`, then press `Space`.
+   - `Picked ✓` → you have it.
+   - **`Gripper` still `OPEN` and `Picked ✗` means the grasp caught nothing and auto-reopened.** That is a safety feature, not a missed keypress. Do NOT just press `Space` again — re-align (step 3) and/or descend one more step first.
+6. **Lift:** `R` two or three times before travelling, so you do not drag the object.
+7. **Move to the destination** and align the same way.
+8. **Release:** the button now says `Release` — press `Space`.
+9. Once `Task done` is `✓` and the green banner shows, press `P` to **stop and save**. The arm homes itself.
+   - While `Task done` is `✗`, Stop is refused — the object is not where it needs to be. Reposition it. You cannot save a failed demo.
+
+If you get badly lost, press `C` twice: the rollout is discarded and the arm homes. Then start over with `P`.
+
+## Rules
+
+- Verify `Steps` after every action.
+- Gripper is `Space`, after reading the button label. Never send `g` / `r` through the Sequence box while a keypress will do — the box's `r` and the `R` key mean different things.
+- If the task mentions an **orange cube and a blue plate**, the **gray cube** on the table is a distractor. Do not pick it up.
+- Do not press `P` a second time until `Task done` is `✓`.
+- If something looks physically wrong (object flew off, arm in a strange pose), stop and tell the operator instead of thrashing.
+
+Begin by taking a screenshot, reading the task, then press `P`.

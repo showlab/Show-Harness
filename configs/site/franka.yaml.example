@@ -1,0 +1,8 @@
+# Rig identity: copy this file to configs/site/franka.yaml and fill in your
+# rig's values. The robot configs require it and refuse to run without it.
+#
+# Find RealSense serial numbers with:  rs-enumerate-devices | grep Serial
+robot:
+  nuc_ip: "192.168.1.100"        # the NUC running the Polymetis franka_server (zerorpc)
+  external_camera_serial: ""     # third-person RealSense D435
+  wrist_camera_serial: ""        # wrist-mounted RealSense D405

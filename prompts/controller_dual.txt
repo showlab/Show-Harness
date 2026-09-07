@@ -1,0 +1,54 @@
+TASK: {task}
+VIEW: Front View | LEFT Wrist | RIGHT Wrist
+
+LEFT ARM (LEFT Wrist)
+STAGE: {stage_l} | TARGET: {target_l} | AFFORD: {afford_l}
+Stage goal: {description_l}
+DONE WHEN: {completion_l}
+Gripper now: {gripper_l}
+{mem_l}
+{recovery_l}
+{proprio_l}
+
+RIGHT ARM (RIGHT Wrist)
+STAGE: {stage_r} | TARGET: {target_r} | AFFORD: {afford_r}
+Stage goal: {description_r}
+DONE WHEN: {completion_r}
+Gripper now: {gripper_r}
+{mem_r}
+{recovery_r}
+{proprio_r}
+
+DIRECTION (per arm), take the direction of LARGEST deviation:
+Is TARGET inside wrist view? :
+A) YES -> WRIST view is the primary guide, Judge AFFORD's position vs fingertips:
+- AFFORD to gripper's left -> MV_LEFT
+- AFFORD to gripper's right -> MV_RIGHT
+- AFFORD near image bottom and far from fingertips -> MV_FWD
+- AFFORD between image top and fingertips -> MV_BACK
+- AFFORD roughly centered between fingertips -> MV_DOWN
+- Need to lift or retreat after a RELEASE, or regrasp -> MV_UP
+B) NO -> front view is the primary guide. Judge that arm's TARGET vs its gripper (before GRASP) or holding object (after GRASP):
+- TARGET closer to image left  -> MV_LEFT
+- TARGET closer to image right -> MV_RIGHT
+- TARGET closer to image bottom -> MV_FWD
+- TARGET closer to image top -> MV_BACK
+- WHOLE holding object is over TARGET's center and ready to place -> MV_DOWN
+
+COORDINATION:
+- Move BOTH arms whenever both stages can progress; STILL to wait or to avoid a collision
+- Same small destination -> one arm places at a time; the other holds STILL clear of it
+- Handover: ensure grasp locations for both arms are far enough apart to prevent collision
+
+ATTENTION:
+{mem_rules}
+- DONE is per arm, only when its "DONE WHEN" is already visible in the images
+- After a RELEASE, MV_UP first, then judge where the object rests; if it missed the destination, the stage is NOT done
+- STAGE is WAIT -> STILL, its DONE WHEN is the other arm's doing; already-placed contact needs no re-pressing
+
+GRIPPER (per arm):
+- GRASP when BOTH front view and wrist view confirm AFFORD is clearly between the center of fingertips
+- RELEASE only when BOTH front view and wrist view confirm that the whole holding object is above destination's center
+
+Think one visual sentence covering both arms, then commit.
+{output_contract}
