@@ -35,11 +35,13 @@
 <!-- 💬 <a href="#">X (Twitter)</a> -->
 </p>
 
-<!-- If autoplay is stripped by the renderer, re-upload the file to a GitHub comment and
-     paste the resulting https://github.com/user-attachments/assets/<id> URL on its own line. -->
-<video src="assets/show-harness-demo.mp4" width="880" autoplay loop muted playsinline controls></video>
+<!-- GitHub does not rewrite relative paths inside <video>, so the reel is shown as a GIF and
+     the mp4 is one click away. To get a real inline player instead: drag assets/show-harness-demo.mp4
+     into any GitHub comment box, then paste the resulting
+     https://github.com/user-attachments/assets/<id> URL on a line of its own, replacing the <a> below. -->
+<a href="assets/show-harness-demo.mp4"><img src="assets/show-harness-demo.gif" alt="Show-Harness demo" width="880"></a>
 
-[▶ 观看完整 demo](assets/show-harness-demo.mp4)
+[▶ 观看完整 demo（110 秒，有配乐）](assets/show-harness-demo.mp4)
 
 </div>
 
