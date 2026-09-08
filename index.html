@@ -165,6 +165,7 @@
         /* fixed ratio keeps every tile the same height, so the captions
            below them line up and nothing gets clipped */
         .video-card {
+            position: relative;
             border-radius: .6rem;
             overflow: hidden;
             aspect-ratio: 16 / 9;
@@ -175,6 +176,35 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+        .video-card.has-alt { cursor: pointer; }
+        .video-card.has-alt:focus-visible {
+            outline: 2px solid var(--sl-logo-blue);
+            outline-offset: 2px;
+        }
+        .take-flip {
+            position: absolute;
+            right: .4rem;
+            bottom: .4rem;
+            z-index: 2;
+            padding: .2rem .45rem;
+            border-radius: 999px;
+            font-size: .62rem;
+            letter-spacing: .01em;
+            line-height: 1;
+            white-space: nowrap;
+            color: #fff;
+            background: rgba(22, 25, 29, .48);
+            opacity: .62;
+            /* the card owns the click, so the pill must not swallow it */
+            pointer-events: none;
+            user-select: none;
+            transition: opacity .18s ease, background .18s ease;
+        }
+        .video-card.has-alt:hover .take-flip,
+        .video-card.has-alt:focus-visible .take-flip {
+            opacity: 1;
+            background: var(--sl-logo-blue);
         }
 
         /* ---------- demo deck (one page of clips at a time) ---------- */
@@ -11582,7 +11612,7 @@ z
            This manifest is rewritten by page/tools/gallery.py -- do not edit it
            by hand, and do not add fields to it, because `gallery.py sync`
            rebuilds the rows from what is on disk and would drop them. */
-        const CLIPS = [{"file":"C0708_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0712_web_auto_white_table_2x.mp4","dur":10.9,"tag":"Tabletop manipulation"},{"file":"C0714_web_auto_white_table_2x.mp4","dur":14.1,"tag":"Tabletop manipulation"},{"file":"C0716_web_auto_white_table_2x.mp4","dur":11.4,"tag":"Tabletop manipulation"},{"file":"C0717_web_auto_white_table_2x.mp4","dur":12.8,"tag":"Tabletop manipulation"},{"file":"C0718_web_auto_white_table_2x.mp4","dur":17.8,"tag":"Tabletop manipulation"},{"file":"C0719_web_auto_white_table_2x.mp4","dur":12.3,"tag":"Tabletop manipulation"},{"file":"C0720_web_auto_white_table_2x.mp4","dur":13.2,"tag":"Tabletop manipulation"},{"file":"C0721_web_auto_white_table_2x.mp4","dur":11.1,"tag":"Tabletop manipulation"},{"file":"C0725_web_auto_white_table_2x.mp4","dur":15.1,"tag":"Tabletop manipulation"},{"file":"C0733_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0734_web_auto_white_table_2x.mp4","dur":14.4,"tag":"Tabletop manipulation"},{"file":"C0737_web_auto_white_table_2x.mp4","dur":14.3,"tag":"Tabletop manipulation"},{"file":"C0739_web_auto_white_table_2x.mp4","dur":15.2,"tag":"Tabletop manipulation"},{"file":"C0747_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0748_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0753_web_auto_white_table_2x.mp4","dur":45.6,"tag":"Tabletop manipulation"},{"file":"C0758_web_auto_white_table_2x.mp4","dur":8.8,"tag":"Tabletop manipulation"},{"file":"C0779_web_auto_white_table_2x.mp4","dur":3.6,"tag":"Tabletop manipulation"},{"file":"C0783_web_auto_white_table_2x.mp4","dur":11.6,"tag":"Tabletop manipulation"},{"file":"C0784_web_auto_white_table_2x.mp4","dur":12.7,"tag":"Tabletop manipulation"},{"file":"C0791_web_auto_white_table_2x.mp4","dur":56.5,"tag":"Tabletop manipulation"},{"file":"C0793_web_auto_white_table_2x.mp4","dur":41.4,"tag":"Tabletop manipulation"},{"file":"C0798_web_auto_white_table_2x.mp4","dur":51.3,"tag":"Tabletop manipulation"},{"file":"C0800_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0801_web_auto_white_table_2x.mp4","dur":25.2,"tag":"Tabletop manipulation"},{"file":"C0802_web_auto_white_table_2x.mp4","dur":22.8,"tag":"Tabletop manipulation"},{"file":"C0803_web_auto_white_table_2x.mp4","dur":26.6,"tag":"Tabletop manipulation"},{"file":"C0804_web_auto_white_table_2x.mp4","dur":32.6,"tag":"Tabletop manipulation"},{"file":"C0702_web_neutral_4x.mp4","dur":79.7,"tag":"Neutral background"},{"file":"C0723_web_neutral_2x.mp4","dur":11.8,"tag":"Neutral background"},{"file":"C0724_web_neutral_2x.mp4","dur":12.8,"tag":"Neutral background"},{"file":"C0806_web_wild_2x.mp4","dur":17.4,"tag":"In the wild"},{"file":"C0808_web_wild_2x.mp4","dur":19.3,"tag":"In the wild"},{"file":"C0815_web_wild_2x.mp4","dur":28.1,"tag":"In the wild"}];
+        const CLIPS = [{"file":"C0708_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0712_web_auto_white_table_2x.mp4","dur":10.9,"tag":"Tabletop manipulation"},{"file":"C0714_web_auto_white_table_2x.mp4","dur":14.1,"tag":"Tabletop manipulation"},{"file":"C0716_web_auto_white_table_2x.mp4","dur":11.4,"tag":"Tabletop manipulation"},{"file":"C0717_web_auto_white_table_2x.mp4","dur":12.8,"tag":"Tabletop manipulation"},{"file":"C0718_web_auto_white_table_2x.mp4","dur":17.8,"tag":"Tabletop manipulation"},{"file":"C0719_web_auto_white_table_2x.mp4","dur":12.3,"tag":"Tabletop manipulation"},{"file":"C0720_web_auto_white_table_2x.mp4","dur":13.2,"tag":"Tabletop manipulation"},{"file":"C0721_web_auto_white_table_2x.mp4","dur":11.1,"tag":"Tabletop manipulation"},{"file":"C0725_web_auto_white_table_2x.mp4","dur":15.1,"tag":"Tabletop manipulation"},{"file":"C0733_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0734_web_auto_white_table_2x.mp4","dur":14.4,"tag":"Tabletop manipulation"},{"file":"C0737_web_auto_white_table_2x.mp4","dur":14.3,"tag":"Tabletop manipulation"},{"file":"C0739_web_auto_white_table_2x.mp4","dur":15.2,"tag":"Tabletop manipulation"},{"file":"C0747_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0748_web_auto_white_table_2x.mp4","dur":11.8,"tag":"Tabletop manipulation"},{"file":"C0753_web_auto_white_table_2x.mp4","dur":45.6,"tag":"Tabletop manipulation"},{"file":"C0754_web_auto_white_table_2x.mp4","dur":6.3,"tag":"Tabletop manipulation"},{"file":"C0758_web_auto_white_table_2x.mp4","dur":8.8,"tag":"Tabletop manipulation"},{"file":"C0779_web_auto_white_table_2x.mp4","dur":3.6,"tag":"Tabletop manipulation"},{"file":"C0783_web_auto_white_table_2x.mp4","dur":11.6,"tag":"Tabletop manipulation"},{"file":"C0784_web_auto_white_table_2x.mp4","dur":12.7,"tag":"Tabletop manipulation"},{"file":"C0791_web_auto_white_table_2x.mp4","dur":56.5,"tag":"Tabletop manipulation"},{"file":"C0793_web_auto_white_table_2x.mp4","dur":41.4,"tag":"Tabletop manipulation"},{"file":"C0798_web_auto_white_table_2x.mp4","dur":51.3,"tag":"Tabletop manipulation"},{"file":"C0800_web_auto_white_table_2x.mp4","dur":28.1,"tag":"Tabletop manipulation"},{"file":"C0801_web_auto_white_table_2x.mp4","dur":25.2,"tag":"Tabletop manipulation"},{"file":"C0802_web_auto_white_table_2x.mp4","dur":22.8,"tag":"Tabletop manipulation"},{"file":"C0803_web_auto_white_table_2x.mp4","dur":26.6,"tag":"Tabletop manipulation"},{"file":"C0804_web_auto_white_table_2x.mp4","dur":32.6,"tag":"Tabletop manipulation"},{"file":"C0702_web_neutral_4x.mp4","dur":79.7,"tag":"Neutral background"},{"file":"C0723_web_neutral_2x.mp4","dur":11.8,"tag":"Neutral background"},{"file":"C0724_web_neutral_2x.mp4","dur":12.8,"tag":"Neutral background"},{"file":"C0806_web_wild_2x.mp4","dur":17.4,"tag":"In the wild"},{"file":"C0808_web_wild_2x.mp4","dur":19.3,"tag":"In the wild"},{"file":"C0815_web_wild_2x.mp4","dur":28.1,"tag":"In the wild"}];
 
         // Each shelf lists its clips in the order they should be shown, so both
         // membership and running order are editable in one place. Shelves are
@@ -11609,6 +11639,13 @@ z
             C0753: "Sort the letters onto the left plate, the blocks onto the right",
             C0702: "Play a game of Chinese chess",
         };
+
+        // A few captures were shot more than once. The extra take rides along on
+        // the tile of the one that shipped instead of taking a shelf slot of its
+        // own -- it is in the manifest, but no shelf lists it, so clicking the
+        // tile is the only way to reach it.
+        const CLIP_ALT = { C0758: "C0754" };
+        const TAKE_LABEL = ["Another take", "Original take"];
 
         const BY_ID = Object.fromEntries(CLIPS.map(c => [c.file.split("_")[0], c]));
 
@@ -11761,6 +11798,36 @@ z
             });
         }
 
+        function clipSrc(file) { return `./assets/videos/gallery_2x/${file}`; }
+        function clipPoster(file) { return `./assets/videos/posters/${file.replace(".mp4", ".jpg")}`; }
+
+        /** Flip a tile between the takes it carries, keeping it playing. */
+        function wireAlt(card, files) {
+            const v = card.querySelector("video");
+            const pill = card.querySelector(".take-flip");
+            let at = 0;
+            const flip = () => {
+                at = (at + 1) % files.length;
+                const file = files[at];
+                v.poster = clipPoster(file);
+                pill.textContent = TAKE_LABEL[at];
+                if (v.dataset.src) {
+                    // prime() has not reached this tile yet; leave the fetch to it
+                    // rather than starting a second one here.
+                    v.dataset.src = clipSrc(file);
+                    return;
+                }
+                v.src = clipSrc(file);
+                v.load();
+                const p = v.play();
+                if (p) p.catch(() => {});
+            };
+            card.addEventListener("click", flip);
+            card.addEventListener("keydown", e => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); }
+            });
+        }
+
         function makeRow(page, key) {
             const row = document.createElement("div");
             row.className = CAT_COLS[key] === 4
@@ -11768,16 +11835,19 @@ z
                 : "row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3";
             page.forEach((c, ci) => {
                 const id = c.file.split("_")[0];
+                const alt = BY_ID[CLIP_ALT[id]];
                 const col = document.createElement("div");
                 col.className = "col";
                 col.style.setProperty("--i", ci);
                 col.innerHTML = `
-                  <div class="video-card">
+                  <div class="video-card${alt ? " has-alt" : ""}"${alt ? ` role="button" tabindex="0" aria-label="Show another take of this capture"` : ""}>
                     <video muted loop playsinline preload="none"
-                           poster="./assets/videos/posters/${c.file.replace('.mp4', '.jpg')}"
-                           data-src="./assets/videos/gallery_2x/${c.file}"></video>
+                           poster="${clipPoster(c.file)}"
+                           data-src="${clipSrc(c.file)}"></video>
+                    ${alt ? `<span class="take-flip">${TAKE_LABEL[0]}</span>` : ""}
                   </div>
                   ${CLIP_TASK[id] ? `<p class="clip-task">${CLIP_TASK[id]}</p>` : ""}`;
+                if (alt) wireAlt(col.querySelector(".video-card"), [c.file, alt.file]);
                 row.appendChild(col);
             });
             return row;
