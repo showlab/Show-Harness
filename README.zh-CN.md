@@ -188,15 +188,15 @@ python scripts/run_real_mvtoken.py --robot-config configs/robot_franka_ft.yaml
 
 | 作用环节 | 插件名称 | 代码 |
 | --- | --- | --- |
-| 感知 | Multi-View Guidance | 视角角色提示词框架 + `core/prompting/wrist_marker.py`（双臂平台上由 `plugins/view_select` 进一步扩展） |
-| 感知 | Proprioception | `plugins/proprioception` |
-| 推理 | Subtask Planning | `plugins/subgoal` |
-| 推理 | Situated Planning | `plugins/deepplan` |
-| 推理 | Action Chunking | `plugins/action_chunk` |
-| 推理 | Adaptive Step | `plugins/variable_step` |
-| 推理 | Visual Prompt | `plugins/affordance` |
-| 执行 | Action History | `plugins/mem_text` |
-| 执行 | Failure Recovery | `plugins/recovery`（微调模式下另有 `plugins/auto_release`） |
+| Perception 感知 | Multi-View Guidance | 视角角色提示词框架 + `core/prompting/wrist_marker.py`（双臂平台上由 `plugins/view_select` 进一步扩展） |
+| Perception 感知 | Proprioception | `plugins/proprioception` |
+| Reasoning 推理 | Subtask Planning | `plugins/subgoal` |
+| Reasoning 推理 | Situated Planning | `plugins/deepplan` |
+| Reasoning 推理 | Action Chunking | `plugins/action_chunk` |
+| Reasoning 推理 | Adaptive Step | `plugins/variable_step` |
+| Reasoning 推理 | Visual Prompt | `plugins/affordance` |
+| Action 执行 | Action History | `plugins/mem_text` |
+| Action 执行 | Failure Recovery | `plugins/recovery`（微调模式下另有 `plugins/auto_release`） |
 
 编写自定义插件请参考 `plugins/README.md`
 
