@@ -35,13 +35,13 @@
 <!-- 💬 <a href="#">X (Twitter)</a> -->
 </p>
 
-<!-- GitHub does not rewrite relative paths inside <video>, so the reel is shown as a GIF and
-     the mp4 is one click away. To get a real inline player instead: drag assets/show-harness-demo.mp4
-     into any GitHub comment box, then paste the resulting
-     https://github.com/user-attachments/assets/<id> URL on a line of its own, replacing the <a> below. -->
-<a href="assets/show-harness-demo.mp4"><img src="assets/show-harness-demo.gif" alt="Show-Harness demo" width="880"></a>
-
 </div>
+
+<!-- A bare user-attachments URL on its own line is the only form GitHub renders as a video
+     player; relative paths inside <video> are never rewritten. The same reel is committed at
+     assets/show-harness-demo.mp4 for offline readers and forks. -->
+
+https://github.com/user-attachments/assets/bd2d31db-f5c5-4554-85bb-2aa206876ac7
 
 ---
 
