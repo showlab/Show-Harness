@@ -28,16 +28,6 @@
 
 ---
 
-Show-Harness turns a vision-language model into a robot controller. The VLM
-sits inside a perceive-reason-decide-execute loop: each step it sees the
-cameras, reasons about the task, and emits one **semantic action unit**
-(`MV_FWD`, `MV_LEFT`, `GRASP`, ...); an embodiment-specific **interpreter**
-deterministically grounds that unit into motion. No robot-specific training is
-required — a frontier VLM drives the robot zero-shot, and the same interface
-supports lightweight fine-tuning of small open-source VLMs on demonstrations
-collected through **GUMI**, a keyboard/browser interface where humans and
-agents play the robot directly.
-
 ## Layout
 
 | Path | What it is |
