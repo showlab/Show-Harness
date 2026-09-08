@@ -41,8 +41,6 @@
      https://github.com/user-attachments/assets/<id> URL on a line of its own, replacing the <a> below. -->
 <a href="assets/show-harness-demo.mp4"><img src="assets/show-harness-demo.gif" alt="Show-Harness demo" width="880"></a>
 
-[▶ Watch the full 110s demo, with sound](assets/show-harness-demo.mp4)
-
 </div>
 
 ---
