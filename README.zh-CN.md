@@ -234,4 +234,8 @@ Show-Harness 构建于以下开源工作之上：
 
 如果您喜欢我们的项目，欢迎在 GitHub 上给我们一个 Star ⭐ 以获取最新动态！
 
+<!-- Star history: star-history.com reads the star timeline anonymously, so this renders
+     only once the repo is public -- and it stays an unflattering flat line until there are
+     enough stars to plot. Uncomment when the curve is worth showing.
 <a href="https://star-history.com/#showlab/Show-Harness&Date"><img alt="Star History Chart" src="https://api.star-history.com/svg?repos=showlab/Show-Harness&type=Date"></a>
+-->
