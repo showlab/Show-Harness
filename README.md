@@ -1,3 +1,7 @@
+<p align="right">
+  <b>English</b> | <a href="./README.zh-CN.md">简体中文</a>
+</p>
+
 <div align="center">
 
 <img src="assets/show-harness-logo.svg" alt="Show-Harness" width="380">
@@ -22,28 +26,70 @@
 **Show Lab @ National University of Singapore**
 
 <!-- TODO before release: fill in the paper and X links; confirm the project-page URL. -->
-📄 [Paper](#) &nbsp;|&nbsp; 🤗 [Models](https://huggingface.co/showlab/Show-Harness-VLMs) &nbsp;|&nbsp; 📊 [Dataset](https://huggingface.co/datasets/showlab/Show-Harness-Data) &nbsp;|&nbsp; 🌐 [Project Page](https://showlab.github.io/Show-Harness/) &nbsp;|&nbsp; 💬 [X (Twitter)](#)
+<p align="center">
+📄 <a href="#">Paper</a> &nbsp;|&nbsp;
+🤗 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">Models</a> &nbsp;|&nbsp;
+📊 <a href="https://huggingface.co/datasets/showlab/Show-Harness-Data">Dataset</a> &nbsp;|&nbsp;
+🌐 <a href="https://showlab.github.io/Show-Harness/">Project Page</a>
+ <!-- &nbsp;|&nbsp; -->
+<!-- 💬 <a href="#">X (Twitter)</a> -->
+</p>
+
+<!-- If autoplay is stripped by the renderer, re-upload the file to a GitHub comment and
+     paste the resulting https://github.com/user-attachments/assets/<id> URL on its own line. -->
+<video src="assets/show-harness-demo.mp4" width="880" autoplay loop muted playsinline controls></video>
+
+[▶ Watch the demo](assets/show-harness-demo.mp4)
 
 </div>
 
 ---
 
-## Layout
+## 🔥 News
 
-| Path | What it is |
-| --- | --- |
-| `core/` | The interaction loop: runners for both modes, config layering, logging, the shared action vocabulary, and the provider-agnostic VLM client + roles (`core/vlm/`) |
-| `plugins/` | Harness plugins — each mounts on one stage of the loop and is toggled from the `plugins:` config block ([plugins/README.md](plugins/README.md)) |
-| `interpreters/` | Embodiment interpreters: Franka (impedance), AgileX Piper (joint streaming), ManiSkill / Isaac-Lab sims |
-| `gumi/` | GUMI: browser teleoperation + agent operators; every step is recorded as a ready (observation, action) training pair |
-| `configs/` | Layered configs: shipped defaults + your site identity + optional overlays ([configs/README.md](configs/README.md)) |
-| `prompts/` | Controller prompts (zero-shot) and the versioned prompt contracts of fine-tuned checkpoints |
-| `scripts/` | Rig bring-up, calibration capture, serving, data collection |
-| `train/` | The fine-tuning pipeline: data conversion, dataset registration, LoRA configs ([train/README.md](train/README.md)) |
-| `models/` | Chat templates, downloaded adapters, the HuggingFace cache ([models/README.md](models/README.md)) |
-| `docs/` | Per-rig runbooks and the fine-tuned mode guide |
+<!-- TODO before release: confirm the dates and add the arXiv / X links once they are live. -->
 
-## Environments
+- [x] `2026.09` Public release: the harness, GUMI collectors, the plugin suite, and the training pipeline.
+- [x] `2026.09` Six LoRA adapters on [🤗 Show-Harness-VLMs](https://huggingface.co/showlab/Show-Harness-VLMs) and the demonstration corpus on [🤗 Show-Harness-Data](https://huggingface.co/datasets/showlab/Show-Harness-Data).
+
+---
+
+## 📑 Table of Contents
+
+- [🌟 Overview](#-overview)
+- [🚀 Quick Start](#-quick-start)
+  - [1. Environments](#1-environments)
+  - [2. Collect demonstrations with GUMI](#2-collect-demonstrations-with-gumi)
+  - [3. Run a real robot](#3-run-a-real-robot)
+  - [4. Repository layout](#4-repository-layout)
+- [🤖 Two modes, one interface](#-two-modes-one-interface)
+- [📦 Released checkpoints and data](#-released-checkpoints-and-data)
+- [🧩 Plugins](#-plugins)
+- [🙏 Acknowledgements](#-acknowledgements)
+- [📌 Citation](#-citation)
+
+---
+
+## 🌟 Overview
+
+<p align="center">
+  <img src="assets/overview.png" alt="Show-Harness overview" width="92%">
+</p>
+
+**Show-Harness** is an *embodied harness*: a compact semantic interface that lets a vision-language model **"play" a robot**. The model reasons over discrete, incremental action units; embodiment-specific interpreters ground each unit into motion, deterministically — so the VLM stays directly responsible for every physical decision.
+
+Through the same interface, a closed-source frontier VLM controls a robot **zero-shot**, and a small open model becomes a capable policy with **less than one H200 GPU-hour** of fine-tuning.
+
+- 🤖 **Two modes, one interface** — a frontier VLM zero-shot, or a fine-tuned small VLM emitting one action token per step.
+- 🦾 **Embodiment-agnostic** — Franka, AgileX Piper (single and dual arm), ManiSkill, and Isaac Lab share one vocabulary and one prompt set.
+- 🎮 **GUMI** — demonstrate a task by playing the robot in a browser; no teleoperation hardware, no post-processing.
+- 🧩 **Ablation-grade plugins** — one directory, one boolean, and byte-identical to no plugin when disabled.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Environments
 
 Separate venvs, because their pins conflict. Start with `base`; add the rest only when
 you need them. `bash scripts/setup.sh` with no arguments prints which already exist.
@@ -59,11 +105,13 @@ shims, teleop window). Zero-shot and sim work do not need it.
 Serving is its own process, so the harness talks to any OpenAI-compatible endpoint — a
 hosted model, or a colleague's server — without `.venv-vllm` existing at all.
 
-Training is self-contained under [train/](train/) and builds its own venvs against
-upstream LLaMA-Factory (`bash train/scripts/setup_llamafactory.sh`); nothing in the
-sections above depends on it.
+Training is self-contained under [train/](train/) and builds its own venvs against upstream LLaMA-Factory (`bash train/scripts/setup_llamafactory.sh`); nothing in the sections above depends on it.
 
-## Collect demonstrations with GUMI
+### 2. Collect demonstrations with GUMI
+
+<p align="center">
+  <img src="assets/gumi.png" alt="GUMI — GUI-based Manipulation Interface" width="92%">
+</p>
 
 GUMI maps every action unit to a key or button, so a human — or a GUI-driving
 agent — demonstrates a task by playing the robot in the browser, and every step
@@ -82,7 +130,7 @@ same key bindings power live human takeover during autonomous rollouts. See
 [gumi/README.md](gumi/README.md) for the keyboard UI, the dual-arm UI, and the
 agent operators.
 
-## Run a real robot
+### 3. Run a real robot
 
 1. Copy `configs/site/franka.yaml.example` to `configs/site/franka.yaml` and
    fill in your robot address and camera serials (Piper:
@@ -102,7 +150,24 @@ The full walkthroughs are in [docs/franka.md](docs/franka.md) and
 [docs/piper.md](docs/piper.md); simulators in
 [docs/simulators.md](docs/simulators.md).
 
-## Two modes, one interface
+### 4. Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `core/` | The interaction loop: runners for both modes, config layering, logging, the shared action vocabulary, and the provider-agnostic VLM client + roles (`core/vlm/`) |
+| `plugins/` | Harness plugins — each mounts on one stage of the loop and is toggled from the `plugins:` config block ([plugins/README.md](plugins/README.md)) |
+| `interpreters/` | Embodiment interpreters: Franka (impedance), AgileX Piper (joint streaming), ManiSkill / Isaac-Lab sims |
+| `gumi/` | GUMI: browser teleoperation + agent operators; every step is recorded as a ready (observation, action) training pair |
+| `configs/` | Layered configs: shipped defaults + your site identity + optional overlays ([configs/README.md](configs/README.md)) |
+| `prompts/` | Controller prompts (zero-shot) and the versioned prompt contracts of fine-tuned checkpoints |
+| `scripts/` | Rig bring-up, calibration capture, serving, data collection |
+| `train/` | The fine-tuning pipeline: data conversion, dataset registration, LoRA configs ([train/README.md](train/README.md)) |
+| `models/` | Chat templates, downloaded adapters, the HuggingFace cache ([models/README.md](models/README.md)) |
+| `docs/` | Per-rig runbooks and the fine-tuned mode guide |
+
+---
+
+## 🤖 Two modes, one interface
 
 **Zero-shot** — a frontier VLM operates the full plugin harness with no
 robot-specific training (`scripts/run_real.py`, `scripts/run_real_dual.py`).
@@ -119,7 +184,9 @@ Switching embodiments changes only the interpreter and its
 `configs/primitives_<embodiment>.yaml`; the model-facing vocabulary and prompts
 stay the same.
 
-## Released checkpoints and data
+---
+
+## 📦 Released checkpoints and data
 
 Five LoRA adapters trained on the real corpus, one per backbone, at
 [showlab/Show-Harness-VLMs](https://huggingface.co/showlab/Show-Harness-VLMs):
@@ -132,11 +199,15 @@ demonstrations they were trained on are at
 Fetch an adapter with the base model it needs, serve it, drive the robot:
 
 ```bash
+# 1) fetch the adapter together with the base model it needs
 ADAPTER=qwen3_5_2b WITH_BASE=1 bash scripts/model/download_vlm_model.sh
+
+# 2) serve it — the script activates .venv-vllm itself
 MODEL=Qwen/Qwen3.5-2B \
   LORA=qwen3_5_2b_showharness_ft=models/Show-Harness-VLMs/qwen3_5_2b \
-  FAMILY=qwen3_5 bash scripts/serve_vlm.sh          # activates .venv-vllm itself
+  FAMILY=qwen3_5 bash scripts/serve_vlm.sh
 
+# 3) drive the robot
 python scripts/run_real_mvtoken.py --robot-config configs/robot_franka_ft.yaml
 ```
 
@@ -148,7 +219,9 @@ silently — see [models/README.md](models/README.md).
 To fine-tune your own, [train/](train/) takes rollouts (yours or the released set) to a
 LoRA on any of the three supported families.
 
-## Plugins
+---
+
+## 🧩 Plugins
 
 Each plugin mounts on one stage of the loop, is toggled by one boolean, and
 leaves the loop byte-identical when disabled.
@@ -167,7 +240,26 @@ leaves the loop byte-identical when disabled.
 
 `plugins/README.md` documents the contract for writing your own.
 
-## Citation
+---
+
+## 🙏 Acknowledgements
+
+Show-Harness builds on the following open-source work:
+
+- **Training** — [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)
+- **Serving** — [vLLM](https://github.com/vllm-project/vllm)
+- **Franka control** — [Polymetis](https://facebookresearch.github.io/fairo/polymetis/)
+- **Simulation** — [ManiSkill](https://github.com/haosulab/ManiSkill), [Isaac Lab](https://github.com/isaac-sim/IsaacLab)
+- **Hardware SDK** — [AgileX Piper](https://github.com/agilexrobotics)
+- **Open backbones** — Qwen3.5, Gemma 4, and InternVL3.5, which the released adapters are trained on
+
+Thanks to all **[Show Lab @ NUS](https://sites.google.com/view/showlab)** members for their support.
+
+---
+
+## 📌 Citation
+
+If you find Show-Harness useful, please cite:
 
 ```bibtex
 @article{chen2026showharness,
@@ -179,3 +271,7 @@ leaves the loop byte-identical when disabled.
   year    = {2026},
 }
 ```
+
+If you like the project, please give us a star ⭐ — it is how we hear that it is useful.
+
+<a href="https://star-history.com/#showlab/Show-Harness&Date"><img alt="Star History Chart" src="https://api.star-history.com/svg?repos=showlab/Show-Harness&type=Date"></a>
