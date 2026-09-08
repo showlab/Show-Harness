@@ -165,7 +165,6 @@
         /* fixed ratio keeps every tile the same height, so the captions
            below them line up and nothing gets clipped */
         .video-card {
-            position: relative;
             border-radius: .6rem;
             overflow: hidden;
             aspect-ratio: 16 / 9;
@@ -181,30 +180,6 @@
         .video-card.has-alt:focus-visible {
             outline: 2px solid var(--sl-logo-blue);
             outline-offset: 2px;
-        }
-        .take-flip {
-            position: absolute;
-            right: .4rem;
-            bottom: .4rem;
-            z-index: 2;
-            padding: .2rem .45rem;
-            border-radius: 999px;
-            font-size: .62rem;
-            letter-spacing: .01em;
-            line-height: 1;
-            white-space: nowrap;
-            color: #fff;
-            background: rgba(22, 25, 29, .48);
-            opacity: .62;
-            /* the card owns the click, so the pill must not swallow it */
-            pointer-events: none;
-            user-select: none;
-            transition: opacity .18s ease, background .18s ease;
-        }
-        .video-card.has-alt:hover .take-flip,
-        .video-card.has-alt:focus-visible .take-flip {
-            opacity: 1;
-            background: var(--sl-logo-blue);
         }
 
         /* ---------- demo deck (one page of clips at a time) ---------- */
@@ -11645,7 +11620,6 @@ z
         // own -- it is in the manifest, but no shelf lists it, so clicking the
         // tile is the only way to reach it.
         const CLIP_ALT = { C0758: "C0754" };
-        const TAKE_LABEL = ["Another take", "Original take"];
 
         const BY_ID = Object.fromEntries(CLIPS.map(c => [c.file.split("_")[0], c]));
 
@@ -11804,13 +11778,11 @@ z
         /** Flip a tile between the takes it carries, keeping it playing. */
         function wireAlt(card, files) {
             const v = card.querySelector("video");
-            const pill = card.querySelector(".take-flip");
             let at = 0;
             const flip = () => {
                 at = (at + 1) % files.length;
                 const file = files[at];
                 v.poster = clipPoster(file);
-                pill.textContent = TAKE_LABEL[at];
                 if (v.dataset.src) {
                     // prime() has not reached this tile yet; leave the fetch to it
                     // rather than starting a second one here.
@@ -11844,7 +11816,6 @@ z
                     <video muted loop playsinline preload="none"
                            poster="${clipPoster(c.file)}"
                            data-src="${clipSrc(c.file)}"></video>
-                    ${alt ? `<span class="take-flip">${TAKE_LABEL[0]}</span>` : ""}
                   </div>
                   ${CLIP_TASK[id] ? `<p class="clip-task">${CLIP_TASK[id]}</p>` : ""}`;
                 if (alt) wireAlt(col.querySelector(".video-card"), [c.file, alt.file]);
