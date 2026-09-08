@@ -106,8 +106,13 @@ https://github.com/user-attachments/assets/bd2d31db-f5c5-4554-85bb-2aa206876ac7
 
 ### 2. 使用 GUMI 采集示教
 
+<!-- A loop of the interface driving itself, small enough to play inline. The full
+     rollout is committed at assets/gumi-rollout.mp4; GitHub will not render a
+     <video> that points at a repository path, so the reel here is a GIF. -->
 <p align="center">
-  <img src="assets/gumi.png" alt="GUMI：基于图形界面的操作接口" width="92%">
+  <a href="assets/gumi-rollout.mp4">
+    <img src="assets/gumi-rollout.gif" alt="GUMI：图形界面智能体通过动作单元驱动双臂" width="92%">
+  </a>
 </p>
 
 GUMI 将每个动作单元绑定到一个按键或按钮，因此人——或一个能够操作图形界面的智能体——只需在浏览器中操作机器人完成任务，即可采得一条示教；每一步都直接存为可用于训练的 (观测, 动作) 对。它同样可以驱动下文的真实平台；若硬件尚未就绪，加上 `--sim` 可先在合成的桌面场景中熟悉整套界面：

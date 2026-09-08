@@ -109,8 +109,13 @@ Training is self-contained under [train/](train/) and builds its own venvs again
 
 ### 2. Collect demonstrations with GUMI
 
+<!-- A loop of the interface driving itself, small enough to play inline. The full
+     rollout is committed at assets/gumi-rollout.mp4; GitHub will not render a
+     <video> that points at a repository path, so the reel here is a GIF. -->
 <p align="center">
-  <img src="assets/gumi.png" alt="GUMI — GUI-based Manipulation Interface" width="92%">
+  <a href="assets/gumi-rollout.mp4">
+    <img src="assets/gumi-rollout.gif" alt="GUMI — a GUI agent driving both arms through the action units" width="92%">
+  </a>
 </p>
 
 GUMI maps every action unit to a key or button, so a human — or a GUI-driving
