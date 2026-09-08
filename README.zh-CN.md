@@ -186,7 +186,7 @@ python scripts/run_real_mvtoken.py --robot-config configs/robot_franka_ft.yaml
 
 每个插件仅挂载于主循环的一个环节，由单个布尔开关控制；关闭后，主循环与「不存在该插件」时逐字节一致
 
-| 环节 | 插件（论文命名） | 代码 |
+| 作用环节 | 插件名称 | 代码 |
 | --- | --- | --- |
 | 感知 | Multi-View Guidance | 视角角色提示词框架 + `core/prompting/wrist_marker.py`（双臂平台上由 `plugins/view_select` 进一步扩展） |
 | 感知 | Proprioception | `plugins/proprioception` |
