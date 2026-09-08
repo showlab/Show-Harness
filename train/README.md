@@ -34,7 +34,7 @@ Either download the released set, or convert your own rollouts. Both land in `tr
 and register the same way, so a run can mix them.
 
 ```bash
-# released ShowHarness data (real + sim), downloaded and registered
+# released Show-Harness data (real + sim), downloaded and registered
 bash train/scripts/download_dataset.sh
 
 # your own rollouts -> training set, registered

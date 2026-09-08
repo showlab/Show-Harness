@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download the released ShowHarness training data and register it with LlamaFactory.
+# Download the released Show-Harness training data and register it with LlamaFactory.
 #
 # The released splits are already converted: each carries a rollouts.json whose image
 # paths are RELATIVE to its own directory, so the data stays portable. register_dataset.py

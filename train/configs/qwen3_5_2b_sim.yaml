@@ -1,4 +1,4 @@
-# mvtoken LoRA - Qwen3.5-2B on the released ShowHarness sim split (RoboLab 130 eps +
+# mvtoken LoRA - Qwen3.5-2B on the released Show-Harness sim split (RoboLab 130 eps +
 # ManiSkill 100 eps, mixed; both simulators share the 2 cm translation quantum, so they
 # train together without rescaling). Hyperparameters are the template's, unchanged.
 #   SPLITS=sim bash train/scripts/download_dataset.sh
@@ -59,4 +59,4 @@ bf16: true
 ddp_timeout: 180000000
 
 ### distributed (ZeRO-2: 2B in bf16 is ~4GB, fits on one GPU; less comm than ZeRO-3)
-deepspeed: examples/deepspeed/ds_z2_config.json
+# deepspeed: examples/deepspeed/ds_z2_config.json

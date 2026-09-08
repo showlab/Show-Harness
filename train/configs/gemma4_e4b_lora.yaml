@@ -55,4 +55,4 @@ bf16: true
 ddp_timeout: 180000000
 
 ### distributed (ZeRO-2: E4B weights ~15GB, roomier than 12B's ~23GB)
-deepspeed: examples/deepspeed/ds_z2_config.json
+# deepspeed: examples/deepspeed/ds_z2_config.json
