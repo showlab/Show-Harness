@@ -1,16 +1,26 @@
-"""MVTOKEN_v0 controller role: planner-free, stage-free atomic-token policy.
+"""Fine-tuned controller role: planner-free, stage-free atomic-token policy.
 
-This is the controller for the Qwen ``MVTOKEN_v0`` LoRA (served by vLLM, e.g.
-``LlamaFactory/scripts/eval/start_vllm_server.sh`` on :8101). Unlike the multi-role
-subgoal pipeline in ``core/vlm/roles.py`` it is a single role with no subgoal planner: every
-step it sends one image-grounded request and gets back exactly one atomic action token.
+The controller for the single-arm mvtoken LoRAs (served by vLLM, see
+``scripts/serve_vlm.sh``). Unlike the multi-role subgoal pipeline in ``core/vlm/roles.py``
+it is a single role with no subgoal planner: every step it sends one image-grounded
+request and gets back exactly one atomic action token.
 
-The request shape mirrors ``LlamaFactory/scripts/eval/infer.py`` (the eval the LoRA was
-validated with) byte-for-byte: the prompt text first, both images appended after it
-(agentview, then wrist), no captions, no guided decoding, thinking off, temperature 0.
-The prompt is the lite training prompt WITHOUT the ``Stage:`` line -- the deployment runs
-stage-free (the model still triggers GRASP/RELEASE from the images; the ablation in
-infer.py --no-stage showed grasp/release survive, only the retract-phase lift degrades).
+The request shape reproduces the training samples the adapter was fitted on: the two
+images FIRST (agentview, then wrist), the prompt text appended AFTER them, no captions,
+thinking off, temperature 0. Wire order is built in one place --
+``vlm_client._message_content`` -- and mirrors the converter, which prepends the
+``<image><image>`` markers to the rendered prompt (see
+``train/data_preparation/rollouts_to_alpaca.py``).
+
+Vocabulary is enforced at PARSE time, not at decode time: the request carries NO
+``guided_choice``, so the model generates freely and ``_parse_single_token`` accepts only
+``allowed_tokens`` (via a recovery ladder, raising when nothing maps -- the runner then
+falls back). Constraining the decoder instead would hide whether the adapter actually
+learned the vocabulary; the zero-shot path in ``vlm_client.complete_token`` does constrain
+it, because there the model was never trained on this vocabulary at all.
+
+The prompt is the lite training prompt: stage-free, ``{task}`` and ``{recent_moves}`` only.
+The model still triggers GRASP/RELEASE from the images.
 """
 from __future__ import annotations
 

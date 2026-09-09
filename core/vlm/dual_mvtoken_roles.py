@@ -6,17 +6,20 @@ policy for the ``dual_cloth`` LoRAs: three views in, one atomic token per arm ou
 no stage, no reasoning.
 
 The three schemes are the SAME policy packaged three ways. They must match the training data
-exactly -- LlamaFactory's ``rollout_to_llamafactory.py --dual --twice/--once/--chain`` and the
-templates in ``prompts/<version>/dual_mvtoken_<scheme>.txt`` -- because a LoRA trained on one
-contract cannot be served under another:
+exactly -- ``train/data_preparation/rollouts_to_alpaca.py --dual --twice/--once/--chain`` and
+the templates in ``prompts/<version>/dual_mvtoken_<scheme>.txt`` -- because a LoRA trained on
+one contract cannot be served under another:
 
+  once  — ONE call. The model answers ``"<left> <right>"``; the right token is conditioned on
+          the left through the decoder's own autoregression. Cheapest, and the scheme our
+          dual-arm comparison settled on -- prefer it unless you have measured otherwise.
   twice — TWO VLM calls per step. Both carry all three views; the prompt's ``{arm}`` says which
           arm to answer for, and the RIGHT call does NOT see the LEFT token (the two calls are
-          conditionally independent given the images). Costs two image encodings.
-  once  — ONE call. The model answers ``"<left> <right>"``; the right token is conditioned on
-          the left through the decoder's own autoregression. Cheapest.
+          conditionally independent given the images, so they can be batched in parallel).
+          Costs two image encodings.
   chain — ONE image encoding, TWO answers: the left token, then a text-only follow-up asks for
-          the right one (which sees the left). ``twice``'s conditioning at ``once``'s cost.
+          the right one (which sees the left). On paper this is ``twice``'s conditioning at
+          ``once``'s cost; kept as an alternative, not as the recommended default.
 
 STILL is a first-class token here and is NOT in the single-arm vocabulary: the arms were
 teleoperated independently, so a step where only one arm moved recorded STILL for the other.

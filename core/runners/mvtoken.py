@@ -1,12 +1,14 @@
-"""Planner-free / stage-free closed-loop rollout for the MVTOKEN_v0 Qwen LoRA.
+"""Planner-free / stage-free closed-loop rollout for the single-arm mvtoken LoRAs.
 
 Real-robot counterpart of :class:`core.runners.real.RealEpisodeRunner`, stripped down for
-the MVTOKEN_v0 policy: there is NO subgoal planner, NO stage, and NO ``DONE`` token. Each
-step feeds the model the task, the current gripper state, and the recent ``MV_*`` moves
-(NO stage line), executes the single atomic token it returns on the physical Franka (with
-the controller's Z-floor safety still enforced), logs the frame, and repeats. Because there
-is no completion signal, the episode always ends on ``max_steps`` (or Ctrl+C); the video /
-logs use the same on-disk layout as the subgoal-pipeline runners.
+the fine-tuned policy: there is NO subgoal planner and NO stage. Each step feeds the model
+the task and the recent ``MV_*`` moves (no stage line), executes the single atomic token it
+returns on the physical Franka (with the controller's Z-floor safety still enforced), logs
+the frame, and repeats. ``DONE`` is the terminal token -- the training data carries one
+synthesized ``DONE`` per episode on the final frame -- and ends the rollout with
+``end_reason="done"``; without it the episode runs to ``max_steps`` (or Ctrl+C). On the real
+robot there is no environment success check, so ``DONE`` records completion without claiming
+success. The video / logs use the same on-disk layout as the subgoal-pipeline runners.
 """
 from __future__ import annotations
 
