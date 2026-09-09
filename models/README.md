@@ -40,9 +40,25 @@ inference-only LoRA adapters, one folder per backbone. Each carries `adapter_con
 | `gemma4_e4b` | `google/gemma-4-E4B-it` | 40 | 0.0626 |
 | `qwen3_5_2b_sim` | `Qwen/Qwen3.5-2B` | 30 | 0.0477 |
 
-The first five are the same recipe on the same mix: single-arm MVTOKEN, `02_exchange_token`
-(Franka and Piper cameras face opposite ways, so the training data swaps `MV_FWD`/`MV_BACK`
-for one embodiment — deployment swaps back). `qwen3_5_2b_sim` is the simulation-only policy,
+The first five are the same recipe on the same mix: single-arm mvtoken, both embodiments
+co-trained under the unified `v3` prompt. The two rigs' scene cameras face opposite ways, so
+the same visual situation calls for opposite depth tokens. Of the three ways we compared to
+reconcile that, these checkpoints use the one that won: **token exchange in the data** — the
+egocentric (AgileX) side's `MV_FWD`/`MV_BACK` are swapped at dataset build time, so every
+episode reads consistently under one prompt. (The alternatives were flipping the image, and
+plain mixing under the per-embodiment `v4` prompt; no released checkpoint uses either.)
+
+Deploying these on the AgileX rig therefore needs the exchange undone at execution time —
+the served model emits swapped-convention tokens there, so an emitted `MV_BACK` means *drive
+the arm forward*. `configs/robot_piper_ft.yaml` declares that per checkpoint
+(`execution_token_swap: [MV_FWD, MV_BACK]`) and the harness applies it at the controller
+boundary only: `recent_moves` and the episode log keep the RAW model token, matching the
+swapped move history the adapter was trained on. The same checkpoints carry no such
+declaration in `configs/robot_franka_ft.yaml`, because on Franka they read straight through.
+Train your own adapter from one rig's rollouts and it needs no swap at all — leave the key
+off (`finetuned_local` does).
+
+`qwen3_5_2b_sim` is the simulation-only policy,
 trained on the released `sim` split (RoboLab + ManiSkill together) — one adapter for both
 simulators, served as `qwen3_5_2b_showharness_sim`.
 

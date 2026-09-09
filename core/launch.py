@@ -27,6 +27,8 @@ from interpreters.franka_atomic_controller import (
 )
 from interpreters.piper_atomic_controller import PiperAtomicController
 from interpreters.real_atomic_controller import RealAtomicController
+import core.ui.console as console
+from core.action_units import ATOMIC_ACTIONS, DONE_ATOM, GRIPPER_ATOMS, STILL_ATOM
 from core.config import deep_merge, make_api_key_refresher, resolve_vlm_config
 from core.record.episode_logger import EpisodeLogger
 from core.franka.franka_session import FrankaSession, FrankaSessionConfig
@@ -623,19 +625,96 @@ def make_controller(
             piper_kwargs["joint_stream_hz"] = float(cfg["joint_stream_hz"])
         if cfg.get("ori_flex_deg") is not None:
             piper_kwargs["ori_flex_rad"] = math.radians(float(cfg["ori_flex_deg"]))
-        return PiperAtomicController.from_primitives_config(
+        controller: RealAtomicController = PiperAtomicController.from_primitives_config(
             session.robot, primitives_cfg, **piper_kwargs
         )
+    else:
+        controller = FrankaAtomicController.from_primitives_config(
+            session.robot,
+            primitives_cfg,
+            # Self-heal a lost controller (server-side reflex / termination): restart impedance
+            # and retry the setpoint instead of crashing the rollout with "no controller running".
+            ensure_controller=(session.start_impedance if session.config.start_impedance else None),
+            **common_kwargs,
+        )
+    return install_execution_token_swap(controller, cfg)
 
-    return FrankaAtomicController.from_primitives_config(
-        session.robot,
-        primitives_cfg,
-        # Self-heal a lost controller (server-side reflex / termination): restart impedance
-        # and retry the setpoint instead of crashing the rollout with "no controller running".
-        ensure_controller=(session.start_impedance if session.config.start_impedance else None),
-        **common_kwargs,
+
+
+def execution_token_swap_pairs(cfg: dict[str, Any]) -> tuple[tuple[str, str], ...]:
+    """Token pairs to exchange at the EXECUTION boundary, from the active VLM profile.
+
+    Declared per checkpoint under that rig's ``vlm_backends.<name>.execution_token_swap``
+    (a flat, even-length list read two-by-two), because whether a swap is needed depends on
+    the (checkpoint, rig) PAIR, not on either alone: the released single-arm adapters were
+    co-trained on Franka + AgileX demonstrations in which the AgileX episodes carry
+    ``MV_FWD``/``MV_BACK`` exchanged, so that one prompt describes both rigs. Deployed on
+    AgileX such a checkpoint therefore emits swapped-convention tokens -- an emitted
+    ``MV_BACK`` means *drive the arm forward* -- while the SAME checkpoint on Franka reads
+    straight through. Hence the declaration lives beside the model, per robot config.
+    """
+    raw = ((cfg.get("vlm") or {}).get("execution_token_swap")) or []
+    if isinstance(raw, str) or not isinstance(raw, (list, tuple)):
+        raise ValueError(
+            "execution_token_swap must be a list of tokens (e.g. [MV_FWD, MV_BACK]), "
+            f"got {raw!r}"
+        )
+    tokens = [str(t).strip().upper() for t in raw]
+    if len(tokens) % 2 != 0:
+        raise ValueError(
+            f"execution_token_swap needs an EVEN number of tokens (read two-by-two); got {tokens}"
+        )
+    known = set(ATOMIC_ACTIONS) | set(GRIPPER_ATOMS) | {DONE_ATOM, STILL_ATOM}
+    unknown = [t for t in tokens if t not in known]
+    if unknown:
+        # A typo here would silently disable the swap, and a reversed-depth rollout looks
+        # like a bad policy rather than a config error -- so refuse to start instead.
+        raise ValueError(
+            f"execution_token_swap names unknown action units {unknown}; "
+            f"known units are {sorted(known)}"
+        )
+    if len(set(tokens)) != len(tokens):
+        raise ValueError(f"execution_token_swap repeats a token: {tokens}")
+    return tuple((tokens[i], tokens[i + 1]) for i in range(0, len(tokens), 2))
+
+
+def install_execution_token_swap(
+    controller: RealAtomicController, cfg: dict[str, Any]
+) -> RealAtomicController:
+    """Exchange the configured token pairs on the way into ``controller.step`` -- only there.
+
+    Wraps THIS controller instance (never the class, so a dual rig's other arm is untouched).
+    The runner keeps feeding the RAW model token to ``recent_moves`` and the episode log,
+    which is what the training data expects: the move history the adapter saw was written in
+    the same swapped convention as its labels, so echoing the raw output back is the
+    consistent thing to do. Only the token->motion mapping is corrected.
+
+    No pairs configured -> the controller is returned untouched.
+    """
+    pairs = execution_token_swap_pairs(cfg)
+    if not pairs:
+        return controller
+    mapping: dict[str, str] = {}
+    for left, right in pairs:
+        mapping[left] = right
+        mapping[right] = left
+    original_step = controller.step
+
+    def swapped_step(token, *args, **kwargs):
+        key = token.strip().upper() if isinstance(token, str) else token
+        return original_step(mapping.get(key, token), *args, **kwargs)
+
+    controller.step = swapped_step  # type: ignore[method-assign]
+    pretty = ", ".join(f"{a}<->{b}" for a, b in pairs)
+    backend = (cfg.get("vlm") or {}).get("backend", "?")
+    print(
+        console.c(
+            console.YELLOW,
+            f"  convention  {pretty} un-swapped before execution "
+            f"(backend {backend}; recent_moves keep the raw model token)",
+        )
     )
-
+    return controller
 
 
 def recovery_empty_width_m(cfg: dict[str, Any]) -> float:

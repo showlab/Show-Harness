@@ -71,8 +71,22 @@ vlm_backends:
   # for the released checkpoints is <key>_showharness_ft. Keeping them separate lets
   # every config name the same backend while pointing at its own weights. See
   # docs/finetuned.md for the base model and FAMILY each one needs.
+  #
+  # execution_token_swap: the released single-arm adapters were co-trained on Franka +
+  # AgileX demonstrations under ONE prompt, which is only consistent because the AgileX
+  # episodes were rendered with MV_FWD/MV_BACK exchanged (the two rigs' scene cameras face
+  # opposite ways). On THIS rig such a checkpoint therefore emits swapped-convention
+  # tokens -- an emitted MV_BACK means "drive the arm forward" -- so the pair is undone at
+  # the controller boundary. recent_moves and the logs keep the RAW model token, matching
+  # the swapped move history the adapter was trained on. The same checkpoints need NO swap
+  # on Franka (see configs/robot_franka_ft.yaml), which is why this is declared per
+  # (checkpoint, rig) rather than globally.
   finetuned_local:
     # Your own adapter. Rename `model` to whatever you registered.
+    # Trained from YOUR AgileX rollouts through this repo's converter? Then it is already
+    # in this rig's own convention -- leave execution_token_swap off. Add
+    # `execution_token_swap: [MV_FWD, MV_BACK]` only if you reproduced the mixed-corpus
+    # recipe above.
     provider: vllm
     model: your_adapter_name
     max_tokens: 256
@@ -84,6 +98,7 @@ vlm_backends:
     model: qwen3_5_2b_showharness_ft
     max_tokens: 256
     reasoning_cot: false
+    execution_token_swap: [MV_FWD, MV_BACK]   # mixed-corpus checkpoint on the egocentric rig
     chat_template_kwargs:
       enable_thinking: false
   qwen3_5_4b:
@@ -91,6 +106,7 @@ vlm_backends:
     model: qwen3_5_4b_showharness_ft
     max_tokens: 256
     reasoning_cot: false
+    execution_token_swap: [MV_FWD, MV_BACK]   # mixed-corpus checkpoint on the egocentric rig
     chat_template_kwargs:
       enable_thinking: false
   qwen3_5_9b:
@@ -98,6 +114,7 @@ vlm_backends:
     model: qwen3_5_9b_showharness_ft
     max_tokens: 256
     reasoning_cot: false
+    execution_token_swap: [MV_FWD, MV_BACK]   # mixed-corpus checkpoint on the egocentric rig
     chat_template_kwargs:
       enable_thinking: false
   internvl3_5_2b:
@@ -105,6 +122,7 @@ vlm_backends:
     model: internvl3_5_2b_showharness_ft
     max_tokens: 256
     reasoning_cot: false
+    execution_token_swap: [MV_FWD, MV_BACK]   # mixed-corpus checkpoint on the egocentric rig
     chat_template_kwargs:
       enable_thinking: false
   gemma4_e4b:
@@ -112,6 +130,7 @@ vlm_backends:
     model: gemma4_e4b_showharness_ft
     max_tokens: 256
     reasoning_cot: false
+    execution_token_swap: [MV_FWD, MV_BACK]   # mixed-corpus checkpoint on the egocentric rig
     chat_template_kwargs:
       enable_thinking: false
   # ---- Hosted baseline -------------------------------------------------------

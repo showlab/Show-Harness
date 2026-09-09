@@ -30,12 +30,31 @@ code enforces them:
   as first-person) plus the dual-arm schemes below. No released checkpoint is
   trained on it — it is the interface to fine-tune your own adapter against.
 
+  **The v3 reconciliation is not free at deploy time.** The AgileX episodes
+  were rendered with `MV_FWD`/`MV_BACK` swapped, so a model trained on that mix
+  emits swapped tokens on the AgileX rig — an emitted `MV_BACK` means *drive
+  forward*. See **Execution-boundary token swap** below.
+
   For Franka the two are byte-identical (`prompts/v3/mvtoken_generator_lite.txt`
   == `prompts/v4/franka_mvtoken_lite.txt`), so a Franka or sim checkpoint
   reproduces under either version; only the `--piper` path actually differs.
 - **Move history**: the prompt lists up to the 5 most recent `MV_*` moves,
   newest first, with `GRASP`/`RELEASE` excluded (`RECENT_MOVES_MAX` in
   `core/runners/mvtoken.py`, matching the training converter's window).
+- **Execution-boundary token swap**: a checkpoint co-trained on the mixed
+  Franka + AgileX corpus speaks the swapped depth convention on the AgileX rig.
+  The rig's config declares it per checkpoint —
+  `vlm_backends.<name>.execution_token_swap: [MV_FWD, MV_BACK]` in
+  `configs/robot_piper_ft.yaml` — and `core.launch.install_execution_token_swap`
+  applies it to that controller instance, so the pair is exchanged on the way
+  into `controller.step` and **nowhere else**. `recent_moves` and the episode log
+  keep the raw model token on purpose: the move history the adapter was trained
+  on was written in the swapped convention too, so echoing the raw output back is
+  what keeps the input distribution intact. A misspelled unit is refused at
+  startup rather than silently disabling the swap (which would read as a bad
+  policy, not a config error). Adapters you train from a single rig's rollouts
+  need no declaration; `finetuned_local` ships without one.
+
 - **No-think chat template**: requests disable model thinking and use
   temperature 0 (`VLMClient.complete_action_token`); the model answers with the bare
   token.
@@ -133,10 +152,14 @@ Real robot, dual arm (Piper; the `arms:` block in
 adapter's training:
 
 ```bash
+python scripts/run_real_dual_mvtoken.py --version v4 --once    # one call answers "<left> <right>"  (default choice)
 python scripts/run_real_dual_mvtoken.py --version v4 --twice   # two VLM calls per step; right does not see left
-python scripts/run_real_dual_mvtoken.py --version v4 --once    # one call answers "<left> <right>"
 python scripts/run_real_dual_mvtoken.py --version v4 --chain   # one image encoding, two answers; right sees left
 ```
+
+`--once` is the scheme our dual-arm comparison settled on; the other two are kept
+as alternatives. Whichever you pick has to be the one the served adapter was
+trained under.
 
 Simulators: `scripts/run_maniskill_mvtoken.py` and
 `scripts/run_robolab_mvtoken.py` run the same loop in sim (`docs/simulators.md`); the
@@ -247,6 +270,7 @@ training inputs and inference inputs line up frame-for-frame.
 
 ## Converting for training
 
-The rollout-to-SFT converter (`rollout_to_llamafactory.py`) lives in the
-external LlamaFactory training repo, not here; train there, then serve the
-resulting adapter as above.
+The rollout-to-SFT converter is `train/data_preparation/rollouts_to_alpaca.py`:
+it renders each recorded step through the same `prompts/<version>/` template the
+runtime uses and emits one LLaMA-Factory sample per step. See [train/README.md](../train/README.md)
+for the full path from rollouts to a served adapter.
