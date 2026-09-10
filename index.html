@@ -612,7 +612,22 @@
             margin-top: .35rem;
         }
 
-        .lead-abstract { font-size: 1.03rem; line-height: 1.75; }
+        /* The abstract is the one block set justified, and justification needs
+           hyphenation to go with it: at this measure the long compounds
+           ("embodiment-specific", "teleoperation") would otherwise stretch the
+           word spaces into rivers. lang="en" on <html> is what lets the browser
+           break them correctly. text-wrap: pretty (above) still guards the last
+           line against a lone word, and orphans/widows only bite when the page
+           is printed. */
+        .lead-abstract {
+            font-size: 1.03rem;
+            line-height: 1.75;
+            text-align: justify;
+            -webkit-hyphens: auto;
+            hyphens: auto;
+            orphans: 3;
+            widows: 3;
+        }
     </style>
 </head>
 
