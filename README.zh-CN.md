@@ -30,9 +30,8 @@
 🤗 <a href="https://huggingface.co/papers/2609.10522">每日论文</a> &nbsp;|&nbsp;
 🦾 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">模型</a> &nbsp;|&nbsp;
 📊 <a href="https://huggingface.co/datasets/showlab/Show-Harness-Data">数据集</a> &nbsp;|&nbsp;
-🌐 <a href="https://showlab.github.io/Show-Harness/">主页</a>
-<!-- &nbsp;|&nbsp; -->
-<!-- 💬 <a href="#">X (Twitter)</a> -->
+🌐 <a href="https://showlab.github.io/Show-Harness/">主页</a> &nbsp;|&nbsp;
+💬 <a href="https://x.com/ZechenBai/status/2097879130356498603">X (Twitter)</a>
 </p>
 
 </div>
