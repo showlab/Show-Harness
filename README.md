@@ -25,7 +25,6 @@
 
 **Show Lab @ National University of Singapore**
 
-<!-- TODO before release: fill in the paper and X links; confirm the project-page URL. -->
 <p align="center">
 📄 <a href="https://arxiv.org/abs/2609.10522">Paper</a> &nbsp;|&nbsp;
 🤗 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">Models</a> &nbsp;|&nbsp;
@@ -46,8 +45,6 @@ https://github.com/user-attachments/assets/bd2d31db-f5c5-4554-85bb-2aa206876ac7
 ---
 
 ## 🔥 News
-
-<!-- TODO before release: confirm the dates and add the arXiv / X links once they are live. -->
 
 - [x] `2026.09` Public release: the harness, GUMI collectors, the plugin suite, and the training pipeline.
 - [x] `2026.09` Six LoRA adapters on [🤗 Show-Harness-VLMs](https://huggingface.co/showlab/Show-Harness-VLMs) and the demonstration corpus on [🤗 Show-Harness-Data](https://huggingface.co/datasets/showlab/Show-Harness-Data).

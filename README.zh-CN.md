@@ -25,9 +25,8 @@
 
 **Show Lab @ 新加坡国立大学**
 
-<!-- TODO before release: fill in the paper and X links; confirm the project-page URL. -->
 <p align="center">
-📄 <a href="#">论文</a> &nbsp;|&nbsp;
+📄 <a href="https://arxiv.org/abs/2609.10522">论文</a> &nbsp;|&nbsp;
 🤗 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">模型</a> &nbsp;|&nbsp;
 📊 <a href="https://huggingface.co/datasets/showlab/Show-Harness-Data">数据集</a> &nbsp;|&nbsp;
 🌐 <a href="https://showlab.github.io/Show-Harness/">项目主页</a> 
@@ -46,8 +45,6 @@ https://github.com/user-attachments/assets/bd2d31db-f5c5-4554-85bb-2aa206876ac7
 ---
 
 ## 🔥 最新进展
-
-<!-- TODO before release: confirm the dates and add the arXiv / X links once they are live. -->
 
 - [x] `2026.09` 正式开源：harness 主体、GUMI 采集工具、完整插件套件与训练流程
 - [x] `2026.09` 六个 LoRA 适配器发布于 [🤗 Show-Harness-VLMs](https://huggingface.co/showlab/Show-Harness-VLMs)，配套示教数据发布于 [🤗 Show-Harness-Data](https://huggingface.co/datasets/showlab/Show-Harness-Data)
@@ -227,13 +224,14 @@ Show-Harness 构建于以下开源工作之上：
 如果 Show-Harness 对您有帮助，欢迎引用我们的工作：
 
 ```bibtex
-@article{chen2026showharness,
-  title   = {Show-Harness: Just a VLM Agent Can Play Robots},
-  author  = {Chen, Yanzhe and Bai, Zechen and Cao, Zhijun and Zeng, Wenzheng and
-             Lin, Kevin Qinghong and Lin, Yiqi and Liang, Guoqiang and
-             Ma, Kevin Yuchen and Huang, Qiming and Shou, Mike Zheng},
-  journal = {arXiv preprint},
-  year    = {2026},
+@misc{chen2026showharnessjustvlmagent,
+      title={Show-Harness: Just a VLM Agent Can Play Robots}, 
+      author={Yanzhe Chen and Zechen Bai and Zhijun Cao and Wenzheng Zeng and Kevin Qinghong Lin and Yiqi Lin and Guoqiang Liang and Kevin Yuchen Ma and Qiming Huang and Mike Zheng Shou},
+      year={2026},
+      eprint={2609.10522},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2609.10522}, 
 }
 ```
 
