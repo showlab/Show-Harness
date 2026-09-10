@@ -27,7 +27,7 @@
 
 <!-- TODO before release: fill in the paper and X links; confirm the project-page URL. -->
 <p align="center">
-📄 <a href="#">Paper</a> &nbsp;|&nbsp;
+📄 <a href="#">Paper<https://arxiv.org/abs/2609.10522/a> &nbsp;|&nbsp;
 🤗 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">Models</a> &nbsp;|&nbsp;
 📊 <a href="https://huggingface.co/datasets/showlab/Show-Harness-Data">Dataset</a> &nbsp;|&nbsp;
 🌐 <a href="https://showlab.github.io/Show-Harness/">Project Page</a>
@@ -267,13 +267,14 @@ Thanks to all **[Show Lab @ NUS](https://sites.google.com/view/showlab)** member
 If you find Show-Harness useful, please cite:
 
 ```bibtex
-@article{chen2026showharness,
-  title   = {Show-Harness: Just a VLM Agent Can Play Robots},
-  author  = {Chen, Yanzhe and Bai, Zechen and Cao, Zhijun and Zeng, Wenzheng and
-             Lin, Kevin Qinghong and Lin, Yiqi and Liang, Guoqiang and
-             Ma, Kevin Yuchen and Huang, Qiming and Shou, Mike Zheng},
-  journal = {arXiv preprint},
-  year    = {2026},
+@misc{chen2026showharnessjustvlmagent,
+      title={Show-Harness: Just a VLM Agent Can Play Robots}, 
+      author={Yanzhe Chen and Zechen Bai and Zhijun Cao and Wenzheng Zeng and Kevin Qinghong Lin and Yiqi Lin and Guoqiang Liang and Kevin Yuchen Ma and Qiming Huang and Mike Zheng Shou},
+      year={2026},
+      eprint={2609.10522},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2609.10522}, 
 }
 ```
 
