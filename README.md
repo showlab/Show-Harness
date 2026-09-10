@@ -277,8 +277,5 @@ If you find Show-Harness useful, please cite:
 
 If you like the project, please give us a star ⭐ — it is how we hear that it is useful.
 
-Star history: star-history.com reads the star timeline anonymously, so this renders
-     only once the repo is public -- and it stays an unflattering flat line until there are
-     enough stars to plot. Uncomment when the curve is worth showing.
 <a href="https://star-history.com/#showlab/Show-Harness&Date"><img alt="Star History Chart" src="https://api.star-history.com/svg?repos=showlab/Show-Harness&type=Date"></a>
 
