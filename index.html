@@ -697,19 +697,19 @@
                 translating this intelligence into robot control remains challenging. We present
                 <strong>Show-Harness</strong>, an <em>Embodied Harness</em> that enables VLMs to
                 <strong>&ldquo;play&rdquo; robots</strong> through a compact semantic interface linking intent to
-                action. Show-Harness exposes discrete incremental action units that VLMs can naturally reason over,
+                action. Show-Harness exposes discrete semantic action units that VLMs can naturally reason over,
                 while embodiment-specific interpreters deterministically ground them into local robot actions, keeping
-                the VLM directly responsible for incremental physical decisions. Through the same interface,
+                the VLM directly responsible for fine-grained physical decisions. Through the same interface,
                 Show-Harness demonstrates the feasibility of (1) directly unlocking closed-source frontier VLMs for
-                zero-shot control, and (2) adapting small-scale models for low-cost deployment with
-                <strong>less than one H200 GPU-hour</strong> of fine-tuning. We further develop
+                zero-shot robot control, and (2) adapting small-scale open-source VLMs for low-cost deployment with
+                <strong>just a few GPU-hours</strong> of fine-tuning. We further develop
                 <strong>GUMI</strong> (<strong>GU</strong>I <strong>M</strong>anipulation <strong>I</strong>nterface),
                 which extends the same semantic action space to GUI-based demonstration collection, allowing humans
                 and agents to &ldquo;play&rdquo; robots across embodiments without specialized teleoperation hardware.
-                Extensive experiments show that Show-Harness-equipped VLM agents generalize across tasks, embodiments,
-                and environments, outperforming representative agentic and VLA paradigms. This suggests that
-                <strong>the right interface can unlock substantial embodied capability from foundation VLMs</strong>,
-                without new model capacity or embodiment-specific pretraining.
+                Extensive experiments show that Show-Harness-equipped VLM agents generalize robustly across tasks,
+                embodiments, and environments, outperforming representative agentic and VLA paradigms. These results
+                suggest that <strong>the right interface can unlock substantial embodied capability from foundation
+                VLMs</strong>, without requiring additional model capacity or costly embodiment-specific pretraining.
             </p>
         </div>
     </section>
