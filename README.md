@@ -23,7 +23,7 @@
 
 <!-- TODO before release: fill in the paper and X links; confirm the project-page URL. -->
 <p align="center">
-📄 <a href="#">Paper<https://arxiv.org/abs/2609.10522/a> &nbsp;|&nbsp;
+📄 <a href="https://arxiv.org/abs/2609.10522">Paper</a> &nbsp;|&nbsp;
 🤗 <a href="https://huggingface.co/showlab/Show-Harness-VLMs">Models</a> &nbsp;|&nbsp;
 📊 <a href="https://huggingface.co/datasets/showlab/Show-Harness-Data">Dataset</a> &nbsp;|&nbsp;
 🌐 <a href="https://showlab.github.io/Show-Harness/">Project Page</a>
