@@ -821,6 +821,41 @@ def step_robolab(env: Any, action: np.ndarray) -> tuple[dict, bool, bool, dict]:
     )
 
 
+def _restore_franka_wrist_camera_mount(env: Any) -> bool:
+    """Restore the configured local camera transform after USD/Fabric initialization.
+
+    The local Isaac Lab XformPrimView implementation can leave the rendered wrist
+    pose inconsistent with the moving hand after reset. Reapply the local offset,
+    rather than a world pose computed against USD's stale articulation transform.
+    """
+    camera = env.scene.sensors.get("wrist_cam")
+    if camera is None or not camera.cfg.prim_path.endswith("/panda_hand/wrist_cam"):
+        return False
+
+    import torch
+    from isaaclab.utils.math import convert_camera_frame_orientation_convention
+    from pxr import Gf, UsdGeom
+
+    offset = camera.cfg.offset
+    rotation = torch.tensor([offset.rot], dtype=torch.float32, device=env.device)
+    rotation = convert_camera_frame_orientation_convention(
+        rotation, origin=offset.convention, target="opengl"
+    )
+    q = rotation[0].cpu().tolist()
+    transform = Gf.Matrix4d().SetRotate(Gf.Quatd(q[0], Gf.Vec3d(*q[1:])))
+    transform.SetTranslateOnly(Gf.Vec3d(*offset.pos))
+    # A distinct transform op also invalidates Fabric's cached mount. Writing
+    # unchanged translate/orient attributes alone leaves that cache untouched.
+    for prim in camera._view.prims:
+        xform = UsdGeom.Xformable(prim)
+        attribute = prim.GetAttribute("xformOp:transform:showharness_mount")
+        operation = (UsdGeom.XformOp(attribute) if attribute else
+                     xform.AddTransformOp(opSuffix="showharness_mount"))
+        operation.Set(transform)
+        xform.SetXformOpOrder([operation])
+    return True
+
+
 def reset_robolab(
     env: Any,
     hold_action: np.ndarray,
@@ -848,11 +883,18 @@ def reset_robolab(
         reset_state()
     env.reset()
     obs, _ = env.reset()
+    restored_camera_mount = _restore_franka_wrist_camera_mount(env)
     # Physics only advances while the timeline plays -- see ensure_timeline_playing().
     ensure_timeline_playing(env)
     terminated = truncated = False
     for _ in range(max(0, int(settle_steps))):
         obs, terminated, truncated, _info = step_robolab(env, hold_action)
+    if restored_camera_mount and settle_steps <= 0:
+        # With no physics steps, refresh the returned observation after the write.
+        for _ in range(2):
+            env.sim.render()
+        env.scene.sensors["wrist_cam"].update(0.0, force_recompute=True)
+        obs = env.observation_manager.compute()
     return obs, terminated, truncated
 
 
