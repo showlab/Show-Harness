@@ -143,9 +143,8 @@ The [SO-101](https://github.com/TheRobotStudio/SO-ARM100) is LeRobot's low-cost 
 It runs here on NVIDIA's
 [Sim-to-Real SO-101 Workshop](https://github.com/isaac-sim/Sim-to-Real-SO-101-Workshop)
 (tag `v1.0`, Isaac Sim 5.1 / Isaac Lab), on its "vials → rack" task
-`Lerobot-So101-Teleop-Vials-To-Rack-DR`. This integration covers simulation only for now.
-The real-arm backend (a LeRobot follower behind the same controller) is a follow-up, once it
-has been validated on hardware.
+`Lerobot-So101-Teleop-Vials-To-Rack-DR`. The real arm (a LeRobot follower behind the same
+controller) is in [so101.md](so101.md).
 
 | Path | What it is |
 | --- | --- |

@@ -1,8 +1,8 @@
 """SO-101 token-level arm controller, independent of where the arm lives.
 
 One controller for every place the arm lives: the Isaac Lab Workshop sim
-(scripts/trajectory/real2sim/backends/so101_workshop.py), a real LeRobot follower (follow-up,
-after hardware validation) and a kinematic stand-in for unit tests (tests/test_so101_*.py).
+(scripts/trajectory/real2sim/backends/so101_workshop.py), a real LeRobot follower
+(core/so101/real_backend.py, docs/so101.md) and a kinematic stand-in for unit tests (tests/test_so101_*.py).
 Subclasses provide only I/O: read the joints, send one tick of joint targets, and the
 world<-base rotation. Every decision about MOTION lives here, so what is verified in sim is
 what runs on hardware. Nothing here imports a simulator or ``scripts/``.

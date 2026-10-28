@@ -1,0 +1,34 @@
+# SO-101 (LeRobot, 5-DoF) real follower, driven by the same interpreter as the Workshop sim.
+# Backend: core/so101/real_backend.py (So101RealBackend), I/O: core/so101/lerobot_io.py
+# Interpreter: interpreters/so101_atomic_controller.py, primitives: configs/primitives_so101.yaml
+# Runbook: docs/so101.md
+
+robot:
+  port: /dev/ttyACM0          # Windows: COM3 ...
+  id: follower_arm_1          # the id given to lerobot-calibrate
+  max_step_rad: 0.08          # SafeArm: per joint per command (~4.6 deg)
+  max_relative_target: 10     # LeRobot's own per-command limit (LeRobot units), stacks with SafeArm
+  # Angle correction (core/so101/lerobot_io.py ExactScale). joint_offset implies exact_scale.
+  exact_scale: true
+  joint_offset: null          # path to the joint_offset.json written by scripts/so101/tune_start.py
+  # Motor overrides on top of LeRobot's configure() (P=16 everywhere, gripper 50 % / 25 % overload).
+  strong_grip: true           # gripper P 32, 70 % torque/current, 50 % on overload
+  stiff_arm: true             # arm joints P 32
+
+cameras:                      # OpenCV device index (or path). Raw 640x480 RGB.
+  front: 0
+  wrist: 2
+# Camera contract (prepared_pair): defaults are the sim backend's (agentview 90, wrist 180),
+# i.e. cameras mounted to give the Workshop cameras' raw view. The wrist camera must show the
+# fingertips at the BOTTOM of its raw image, as the Workshop's ego camera does.
+
+# Poses, task frame (origin at the robot base, +X toward the work area, +Z up).
+start_q_rad: [-0.251174, -0.612255, -0.064738, 1.511172, -1.600151, 0.4498]  # Workshop reset pose
+begin_task_m: [0.25, -0.02, 0.17]   # hand position the verification starts from
+begin_pitch_deg: 60.0               # tool pitch at the start (90 = straight down)
+
+# Mat top above the robot base origin. The Workshop scene puts it 3.5 cm above; with the base
+# and the mat on the same table the hand closed 3.5 cm too high, so raise the mat to match.
+table_top_task_z_m: 0.035
+hand_floor_above_table_m: 0.003     # the gripper/jaw hulls stay this far above the mat
+workspace: {min: [0.05, -0.30, 0.037], max: [0.45, 0.25, 0.32]}

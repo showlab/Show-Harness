@@ -12,7 +12,7 @@ the vocabulary, prompts, and policies stay unchanged.
 | File | Embodiment | Action |
 | --- | --- | --- |
 | `robolab_atomic_controller.py` | Isaac Lab | 7-D relative differential-IK with per-step orientation hold |
-| `so101_atomic_controller.py` | SO-101 (Isaac Lab Workshop) | joint targets from in-house IK; RT_PITCH/RT_YAW on 5 DoF, RT_ROLL refused (docs/simulators.md) |
+| `so101_atomic_controller.py` | SO-101 (Isaac Lab Workshop; real follower via core/so101) | joint targets from in-house IK; RT_PITCH/RT_YAW on 5 DoF, RT_ROLL refused (docs/simulators.md, docs/so101.md) |
 
 **Real arms** integrate absolute Cartesian setpoints against a duck-typed
 robot object:
