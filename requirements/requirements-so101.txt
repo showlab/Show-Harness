@@ -1,0 +1,21 @@
+# Real SO-101 (core/so101) on the PC the arm is plugged into. Standalone and light (~300 MB):
+# no torch, no simulator. lerobot is installed WITHOUT its dependencies and only what the arm
+# needs is added; core.so101.lerobot_io.lerobot_lite() stands in for the packages lerobot
+# 0.4.1 imports on the motor-bus path but never uses. Two steps:
+#
+#   pip install --no-deps lerobot==0.4.1
+#   pip install -r requirements/requirements-so101.txt
+#
+# Windows works too (tested 2026-10 with Python 3.10); set PYTHONUTF8=1 first.
+feetech-servo-sdk>=1.0.0,<2.0.0
+pyserial>=3.5,<4.0
+draccus==0.10.0
+deepdiff>=7.0.1,<9.0.0
+termcolor>=2.4.0,<4.0.0
+packaging>=24.2,<26.0
+tqdm
+numpy<2.3
+opencv-python>=4.9,<4.13
+pillow
+pyyaml
+huggingface-hub>=0.34.2,<0.36.0
