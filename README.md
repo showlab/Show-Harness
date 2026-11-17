@@ -9,7 +9,7 @@
 ### Just a VLM Agent Can Play Robots
 
 <p align="center">
-<a href="https://chenanno.github.io/">Yanzhe Chen</a><sup>*</sup> ·
+<a href="https://chenyanzhe.page/">Yanzhe Chen</a><sup>*</sup> ·
 <a href="https://www.baizechen.site/">Zechen Bai</a><sup>*</sup> ·
 <a href="https://caozhijun.top/">Zhijun Cao</a><sup>*</sup> ·
 <a href="https://wenzhengzeng.github.io/">Wenzheng Zeng</a><sup>*</sup> ·
