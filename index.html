@@ -636,12 +636,21 @@
            Cite, footer
            ================================================================ */
         .bib { position: relative; }
-        pre.bibtex {
-            background: #0f1720; color: #dce3ea; border-radius: 14px; padding: 1.2rem 1.35rem; font-size: .84rem; line-height: 1.6;
-            white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; box-shadow: var(--sh-2);
+        /* One block per field. Each field hangs: its first line starts two columns in, and any line it
+           wraps onto starts under the opening brace (column 13), so the entry stays aligned at any width.
+           Authors are unbreakable "Last, First and" units, so lines only ever break after an "and". */
+        .bibtex {
+            margin: 0; padding: 1.15rem 1.35rem; border: 1px solid #e3e8ee; border-radius: 12px; background: #f6f8fa;
+            color: var(--ink); font: .84rem/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
         }
-        .bib .tool { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, .1); color: #e8edf2; border-color: rgba(255, 255, 255, .16); box-shadow: none; }
-        .bib .tool:hover { color: #fff; background: rgba(255, 255, 255, .18); }
+        .bibtex > div { white-space: pre-wrap; }
+        .bibtex > .f { padding-left: 13ch; text-indent: -11ch; }
+        .bibtex .au { white-space: nowrap; }
+        .bib .tool {
+            position: absolute; top: 12px; right: 12px; height: 30px; padding: 0 .85rem; border-radius: 9px;
+            background: var(--ink); border-color: var(--ink); color: #fff; box-shadow: none;
+        }
+        .bib .tool:hover { color: #fff; background: #000; border-color: #000; }
         footer { padding: 36px 0 44px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
         footer .wrap { text-align: center; }
         footer a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em;
@@ -740,7 +749,9 @@
             .browser-bar { height: 26px; padding: 0 10px; gap: 5px; }
             .browser-bar i { width: 7px; height: 7px; }
             .browser-bar span { font-size: .68rem; }
-            pre.bibtex { font-size: .74rem; padding: 2.6rem 1rem 1rem; }
+            .bibtex { font-size: .72rem; padding: .9rem .9rem .95rem; }
+            .bib .tool { top: 9px; right: 9px; height: 26px; padding: 0 .7rem; }
+            .bib .tool .lbl { display: inline; }   /* this button is its label (figure tools are icon-only here) */
         }
     </style>
 </head>
@@ -11616,13 +11627,15 @@ z
                 <h2 class="sec-title">BibTeX</h2>
             </div>
             <div class="bib">
-                <button class="tool" type="button" id="copyBib"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span class="lbl" id="copyLbl">Copy</span></button>
-                <pre class="bibtex" id="bibtex">@article{chen2026show,
-  title={Show-harness: Just a vlm agent can play robots},
-  author={Chen, Yanzhe and Bai, Zechen and Cao, Zhijun and Zeng, Wenzheng and Lin, Kevin Qinghong and Lin, Yiqi and Liang, Guoqiang and Ma, Kevin Yuchen and Huang, Qiming and Shou, Mike Zheng},
-  journal={arXiv preprint arXiv:2609.10522},
-  year={2026}
-}</pre>
+                <button class="tool" type="button" id="copyBib"><span class="lbl" id="copyLbl">Copy</span></button>
+                <div class="bibtex" id="bibtex">
+                    <div>@article{chen2026show,</div>
+                    <div class="f">title   = {Show-harness: Just a vlm agent can play robots},</div>
+                    <div class="f">author  = <span class="au">{Chen, Yanzhe and</span> <span class="au">Bai, Zechen and</span> <span class="au">Cao, Zhijun and</span> <span class="au">Zeng, Wenzheng and</span> <span class="au">Lin, Kevin Qinghong and</span> <span class="au">Lin, Yiqi and</span> <span class="au">Liang, Guoqiang and</span> <span class="au">Ma, Kevin Yuchen and</span> <span class="au">Huang, Qiming and</span> <span class="au">Shou, Mike Zheng},</span></div>
+                    <div class="f">journal = {arXiv preprint arXiv:2609.10522},</div>
+                    <div class="f">year    = {2026}</div>
+                    <div>}</div>
+                </div>
             </div>
         </div></div>
     </section>
@@ -12071,7 +12084,9 @@ z
         /* ---------------- BibTeX copy ---------------- */
         document.getElementById("copyBib").addEventListener("click", async () => {
             const lbl = document.getElementById("copyLbl");
-            try { await navigator.clipboard.writeText(document.getElementById("bibtex").textContent); lbl.textContent = "Copied"; }
+            const text = [...document.getElementById("bibtex").children]
+                .map(d => (d.classList.contains("f") ? "  " : "") + d.textContent.replace(/\s+/g, " ").trim().replace(/^(\w+)\s+=/, (m, k) => k.padEnd(7) + " =")).join("\n");
+            try { await navigator.clipboard.writeText(text); lbl.textContent = "Copied"; }
             catch { lbl.textContent = "Select & copy"; }
             setTimeout(() => { lbl.textContent = "Copy"; }, 1600);
         });
