@@ -36,10 +36,6 @@
 
 </div>
 
-<!-- A bare user-attachments URL on its own line is the only form GitHub renders as a video
-     player; relative paths inside <video> are never rewritten. The same reel is committed at
-     assets/show-harness-demo.mp4 for offline readers and forks. -->
-
 https://github.com/user-attachments/assets/bd2d31db-f5c5-4554-85bb-2aa206876ac7
 
 ---
