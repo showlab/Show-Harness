@@ -4,7 +4,7 @@
 
 <div align="center">
 
-<img src="assets/show-harness-logo.svg" alt="Show-Harness" width="380">
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/show-harness-logo-dark.svg"><img src="assets/show-harness-logo.svg" alt="Show-Harness" width="380"></picture>
 
 ### Just a VLM Agent Can Play Robots
 
